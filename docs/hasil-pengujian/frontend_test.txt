@@ -1,0 +1,19 @@
+
+ RUN  v5.0.5 /home/claude/rental-motor-samosir/frontend
+
+ ✓ tests/pages.test.jsx (6 tests) 909ms
+   ✓ MotorForm (3)
+     ✓ mengirim POST dengan angka bertipe number lalu memanggil onSaved 361ms
+ ✓ tests/api.test.js (5 tests) 6ms
+ ✓ tests/validators.test.js (10 tests) 5ms
+ ✓ tests/format.test.js (5 tests) 11ms
+
+ Test Files  4 passed (4)
+      Tests  26 passed (26)
+   Start at  01:16:08
+   Duration  6.01s (environment 55%, tests 17%, import 11%, setup 8%, transform 8%, worker 2%)
+
+Environment  jsdom was created 4 times · 3.01s total, 55% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

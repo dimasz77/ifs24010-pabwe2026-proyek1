@@ -1,0 +1,30 @@
+# Contoh konfigurasi Fly.io (BELUM DIUJI). Ganti nama app, lalu: fly launch --no-deploy && fly volumes create rental_data --size 1 && fly deploy
+# Periksa harga dan kuota terbaru Fly.io sebelum memakai; layanan ini dapat berbayar.
+app = "jenika-rental-samosir"
+primary_region = "sin"
+
+[build]
+
+[env]
+  PORT = "4000"
+  NODE_ENV = "production"
+  DB_PATH = "/data/rental.db"
+  SERVE_FRONTEND = "true"
+  AUTO_SEED = "true"
+
+[mounts]
+  source = "rental_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/health"
+    interval = "30s"
+    timeout = "5s"

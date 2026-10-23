@@ -1,0 +1,19 @@
+# Menjalankan aplikasi (frontend + backend + SQLite persisten) dalam satu container.
+#   docker compose up -d --build   ->  http://localhost:4000
+services:
+  app:
+    build: .
+    image: rental-motor-samosir:latest
+    container_name: rental-motor-samosir
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      AUTO_SEED: "true"
+      LATE_FEE_MULTIPLIER: "1.5"
+    volumes:
+      - rental_data:/data
+
+volumes:
+  rental_data:

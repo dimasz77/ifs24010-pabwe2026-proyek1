@@ -1,0 +1,15 @@
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 1955 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                          0.65 kB │ gzip:  0.37 kB
+dist/assets/bricolage-grotesque-vietnamese-wght-normal-BUzh504Q.woff2    8.60 kB
+dist/assets/dm-sans-latin-ext-wght-normal-BOFOeGcA.woff2                18.22 kB
+dist/assets/bricolage-grotesque-latin-ext-wght-normal-CcLUaPy7.woff2    18.66 kB
+dist/assets/dm-sans-latin-wght-normal-Xz1IZZA0.woff2                    36.93 kB
+dist/assets/bricolage-grotesque-latin-wght-normal-DLoelf7F.woff2        41.34 kB
+dist/assets/index-d58hDGVG.css                                          16.35 kB │ gzip:  4.36 kB
+dist/assets/index-CMn5KVxM.js                                          314.10 kB │ gzip: 97.68 kB
+
+✓ built in 933ms

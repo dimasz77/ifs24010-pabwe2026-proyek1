@@ -1,0 +1,15 @@
+PASS  1. Dashboard memuat ringkasan dari API
+PASS  2. Validasi form motor (kosong) tampil tanpa menyimpan
+PASS  3. Create motor lewat UI dan tersimpan di SQLite
+PASS  4. Plat duplikat ditolak backend (409) dan pesan tampil di form
+PASS  5. Update tarif motor (PUT) tampil di daftar
+PASS  6. Filter dan pencarian: tidak ada hasil menampilkan empty state
+PASS  7. Create pelanggan lewat UI
+PASS  8. Buat sewa: ketersediaan, kalkulasi biaya (diskon 7 hari), dan simpan
+PASS  9. Motor yang sudah dipesan tidak ditawarkan pada rentang tanggal bentrok
+PASS  10. Alur status: Mulai -> Kembalikan
+PASS  11. Hapus motor yang punya riwayat sewa ditolak; motor tanpa riwayat dapat dihapus
+PASS  12. Data tetap ada setelah server di-restart (persistensi SQLite)
+PASS  13. Backend mati: UI menampilkan pesan "Server tidak dapat dihubungi"
+
+Ringkasan E2E: 13/13 langkah lulus

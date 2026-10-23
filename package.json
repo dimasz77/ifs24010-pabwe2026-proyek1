@@ -1,0 +1,15 @@
+{
+  "name": "rental-motor-samosir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jenika Rental - aplikasi web pengelolaan rental motor di Samosir (Express + SQLite + React)",
+  "scripts": {
+    "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "build": "npm --prefix frontend run build",
+    "start:prod": "npm run build && SERVE_FRONTEND=true npm --prefix backend start",
+    "smoke": "node scripts/smoke.mjs http://localhost:4000"
+  }
+}
