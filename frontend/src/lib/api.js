@@ -27,8 +27,11 @@ function buildUrl(path, params) {
   return `${BASE}${path}${query}`;
 }
 
-function shouldExpireSession(path) {
-  return !path.startsWith('/auth/login') && !path.startsWith('/auth/register');
+function expireSessionForUnauthorizedRequest(path) {
+  if (path.startsWith('/auth/login')) return;
+  if (path.startsWith('/auth/register')) return;
+  setToken(null);
+  globalThis.dispatchEvent(new Event('auth:expired'));
 }
 
 async function request(path, { method = 'GET', body, params, signal } = {}) {
@@ -52,10 +55,7 @@ async function request(path, { method = 'GET', body, params, signal } = {}) {
   let json = null;
   try { json = await res.json(); } catch { /* respons bukan JSON */ }
 
-  if (res.status === 401 && shouldExpireSession(path)) {
-    setToken(null);
-    globalThis.dispatchEvent(new Event('auth:expired'));
-  }
+  if (res.status === 401) expireSessionForUnauthorizedRequest(path);
 
   if (res.ok && json && json.success !== false) {
     return { data: json.data, meta: json.meta || null };

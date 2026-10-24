@@ -15,6 +15,54 @@ function motorAvailability(motor) {
   return <Badge tone="ok">Tersedia</Badge>;
 }
 
+function renderMotorCard(motor, onEdit, onDelete) {
+  return (
+    <li key={motor.id} className={`motor-card type-${motor.type}`}>
+      <div className="motor-top">
+        <span className="plate" aria-label={`Plat nomor ${motor.plate}`}>{motor.plate}</span>
+        {motorAvailability(motor)}
+      </div>
+      <h3>{motor.brand} {motor.model}</h3>
+      <p className="motor-meta">
+        <span><Gauge size={14} /> {motor.engine_cc} cc</span>
+        <span><Calendar size={14} /> {motor.year}</span>
+        <span>{typeLabel(motor.type)}{motor.color ? `, ${motor.color}` : ''}</span>
+      </p>
+      <p className="motor-loc"><MapPin size={14} /> {motor.location_name}</p>
+      <div className="motor-bottom">
+        <p className="price">{rupiah(motor.price_per_day)}<small> / hari</small></p>
+        <div className="row-actions">
+          {motor.status === 'tersedia' && <Link className="btn btn-primary btn-sm" to={`/sewa/baru?motor=${motor.id}`}>Sewakan</Link>}
+          <button className="icon-btn" aria-label={`Ubah ${motor.brand} ${motor.model}`} onClick={() => onEdit(motor)}><Pencil size={18} /></button>
+          <button className="icon-btn icon-danger" aria-label={`Hapus ${motor.brand} ${motor.model}`} onClick={() => onDelete(motor)}><Trash2 size={18} /></button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function renderMotorcycleList(data, loading, meta, onPage, onEdit, onDelete) {
+  return (
+    <>
+      <ul className={`motor-grid ${loading ? 'is-loading' : ''}`}>
+        {data.map((motor) => renderMotorCard(motor, onEdit, onDelete))}
+      </ul>
+      <Pagination meta={meta} onPage={onPage} />
+    </>
+  );
+}
+
+function renderMotorcycleEmptyState(hasFilter, onAdd, onReset) {
+  const title = hasFilter ? 'Tidak ada motor yang cocok' : 'Belum ada motor';
+  const text = hasFilter
+    ? 'Ubah atau hapus filter untuk melihat lebih banyak unit.'
+    : 'Tambahkan motor pertama untuk mulai menerima penyewaan.';
+  const action = hasFilter
+    ? <button className="btn btn-ghost" onClick={onReset}>Hapus filter</button>
+    : <button className="btn btn-primary" onClick={onAdd}>Tambah motor</button>;
+  return <EmptyState title={title} text={text} action={action} />;
+}
+
 export default function Motorcycles() {
   const confirm = useConfirm();
   const toast = useToast();
@@ -42,6 +90,8 @@ export default function Motorcycles() {
 
   const setFilter = (k) => (e) => { setF((s) => ({ ...s, [k]: e.target.value })); setPage(1); };
   const hasFilter = q || f.type || f.status || f.location_id || f.available_from || f.available_to;
+  const addMotor = () => setForm({ motor: null });
+  const editMotor = (motor) => setForm({ motor });
   const reset = () => { setQ(''); setF({ type: '', status: '', location_id: '', sort: 'newest', available_from: '', available_to: '' }); setPage(1); };
 
   async function remove(m) {
@@ -64,50 +114,15 @@ export default function Motorcycles() {
   } else if (error && !data) {
     motorcycleContent = <ErrorState error={error} onRetry={reload} />;
   } else if (data.length === 0) {
-    const emptyTitle = hasFilter ? 'Tidak ada motor yang cocok' : 'Belum ada motor';
-    const emptyText = hasFilter
-      ? 'Ubah atau hapus filter untuk melihat lebih banyak unit.'
-      : 'Tambahkan motor pertama untuk mulai menerima penyewaan.';
-    let emptyAction = <button className="btn btn-primary" onClick={() => setForm({ motor: null })}>Tambah motor</button>;
-    if (hasFilter) emptyAction = <button className="btn btn-ghost" onClick={reset}>Hapus filter</button>;
-    motorcycleContent = <EmptyState title={emptyTitle} text={emptyText} action={emptyAction} />;
+    motorcycleContent = renderMotorcycleEmptyState(hasFilter, addMotor, reset);
   } else {
-    motorcycleContent = (
-      <>
-        <ul className={`motor-grid ${loading ? 'is-loading' : ''}`}>
-          {data.map((m) => (
-            <li key={m.id} className={`motor-card type-${m.type}`}>
-              <div className="motor-top">
-                <span className="plate" aria-label={`Plat nomor ${m.plate}`}>{m.plate}</span>
-                {motorAvailability(m)}
-              </div>
-              <h3>{m.brand} {m.model}</h3>
-              <p className="motor-meta">
-                <span><Gauge size={14} /> {m.engine_cc} cc</span>
-                <span><Calendar size={14} /> {m.year}</span>
-                <span>{typeLabel(m.type)}{m.color ? `, ${m.color}` : ''}</span>
-              </p>
-              <p className="motor-loc"><MapPin size={14} /> {m.location_name}</p>
-              <div className="motor-bottom">
-                <p className="price">{rupiah(m.price_per_day)}<small> / hari</small></p>
-                <div className="row-actions">
-                  {m.status === 'tersedia' && <Link className="btn btn-primary btn-sm" to={`/sewa/baru?motor=${m.id}`}>Sewakan</Link>}
-                  <button className="icon-btn" aria-label={`Ubah ${m.brand} ${m.model}`} onClick={() => setForm({ motor: m })}><Pencil size={18} /></button>
-                  <button className="icon-btn icon-danger" aria-label={`Hapus ${m.brand} ${m.model}`} onClick={() => remove(m)}><Trash2 size={18} /></button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <Pagination meta={meta} onPage={setPage} />
-      </>
-    );
+    motorcycleContent = renderMotorcycleList(data, loading, meta, setPage, editMotor, remove);
   }
 
   return (
     <>
       <PageHeader title="Armada motor" subtitle="Kelola unit yang disewakan di Samosir">
-        <button className="btn btn-primary" onClick={() => setForm({ motor: null })}><Plus size={18} /> Tambah motor</button>
+        <button className="btn btn-primary" onClick={addMotor}><Plus size={18} /> Tambah motor</button>
       </PageHeader>
 
       <section className="filters" aria-label="Filter motor">
