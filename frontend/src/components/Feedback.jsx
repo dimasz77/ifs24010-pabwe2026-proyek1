@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CircleCheck, CircleAlert, X } from 'lucide-react';
-import PropTypes from 'prop-types';
 import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
 const ToastCtx = createContext(null);

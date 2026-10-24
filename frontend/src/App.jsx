@@ -3,7 +3,6 @@ import Layout from './components/Layout';
 import { FeedbackProvider } from './components/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/ui';
-import PropTypes from 'prop-types';
 import { ReactNodePropType, validateComponentProps } from './lib/validateComponentProps';
 import Login from './pages/Login';
 import Register from './pages/Register';

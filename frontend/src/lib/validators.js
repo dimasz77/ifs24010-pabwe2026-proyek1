@@ -24,7 +24,7 @@ export function isValidEmail(value) {
 
   const localSymbols = "!#$%&'*+/=?^_`{|}~-";
   for (const char of local) {
-    const code = char.charCodeAt(0);
+    const code = char.codePointAt(0);
     if (!isAsciiAlphaNumeric(code) && char !== '.' && !localSymbols.includes(char)) return false;
   }
 
@@ -34,7 +34,7 @@ export function isValidEmail(value) {
   return labels.every((label) => {
     if (label.length === 0 || label.length > 63 || label.startsWith('-') || label.endsWith('-')) return false;
     for (const char of label) {
-      const code = char.charCodeAt(0);
+      const code = char.codePointAt(0);
       if (!isAsciiAlphaNumeric(code) && char !== '-') return false;
     }
     return true;
