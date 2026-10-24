@@ -4,10 +4,10 @@
   "private": true,
   "description": "Jenika Rental - aplikasi web pengelolaan rental motor di Samosir (Express + SQLite + React)",
   "workspaces": [
+    "backend",
     "frontend"
   ],
   "scripts": {
-    "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "test": "npm --prefix backend test && npm --prefix frontend test",

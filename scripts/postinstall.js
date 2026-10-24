@@ -1,21 +1,28 @@
-// Postinstall lintas-platform: pasang dependency backend/frontend lalu build frontend.
-// Dilewati bila npm tidak tersedia (mis. image oven/bun di Jenkins yang hanya punya bun).
+// Dijalankan otomatis setelah `bun install` / `npm install` di root.
+// Dependency backend + frontend sudah terpasang oleh workspaces; di sini hanya membangun frontend
+// (frontend/dist) supaya bisa disajikan Express. Tidak membutuhkan npm: vite dijalankan lewat
+// runtime yang sedang dipakai (node atau bun).
 const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const run = (cmd) => spawnSync(cmd, { stdio: 'inherit', shell: true });
-
-if (run('npm --version >' + (process.platform === 'win32' ? 'NUL' : '/dev/null') + ' 2>&1').status !== 0) {
-  console.log('npm tidak tersedia, postinstall dilewati');
+// Pipeline CI (Jenkins) tidak memerlukan hasil build; dilewati agar install cepat dan stabil.
+if (process.env.JENKINS_URL || process.env.CI) {
+  console.log('[postinstall] CI terdeteksi, build frontend dilewati');
   process.exit(0);
 }
 
-const steps = [
-  'npm --prefix backend install --ignore-scripts',
-  'npm --prefix frontend install --include=dev',
-  'npm --prefix frontend run build',
-];
+const root = path.resolve(__dirname, '..');
+const frontend = path.join(root, 'frontend');
+const vite = [
+  path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'),
+  path.join(frontend, 'node_modules', 'vite', 'bin', 'vite.js'),
+].find((p) => fs.existsSync(p));
 
-for (const step of steps) {
-  const result = run(step);
-  if (result.status !== 0) process.exit(result.status || 1);
+if (!vite) {
+  console.error('[postinstall] vite tidak ditemukan, build frontend gagal');
+  process.exit(1);
 }
+
+const result = spawnSync(process.execPath, [vite, 'build'], { cwd: frontend, stdio: 'inherit' });
+process.exit(result.status === null ? 1 : result.status);
