@@ -54,7 +54,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; }
 .nav-link { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 6px; color: #c9dde0; font-weight: 500; border-left: 4px solid transparent; }
 .nav-link:hover { background: #1d4957; color: #fff; }
-.nav-link.active { background: rgba(255, 255, 255, 0.12); color: #fff; border-left-color: var(--gold); }
+.nav-link.active { background: #1d4957; color: #fff; border-left-color: var(--gold); }
 .sidebar-foot { margin-top: 0; padding: 18px 20px 24px; font-size: 0.8rem; color: #c9dde0; }
 .main { min-width: 0; }
 .content { max-width: 1160px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-direction: column; gap: 20px; }
