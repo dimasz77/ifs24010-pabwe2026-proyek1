@@ -16,7 +16,7 @@ function RequireAuth({ children }) {
   const { user, ready } = useAuth();
   const location = useLocation();
   if (!ready) return <Spinner label="Memeriksa sesi..." />;
-  if (!user) return <Navigate to="/masuk" replace state={{ from: location.pathname + location.search }} />;
+  if (!user) return <Navigate to="/auth/login" replace state={{ from: location.pathname + location.search }} />;
   return children;
 }
 
@@ -26,8 +26,10 @@ export default function App() {
       <AuthProvider>
         <FeedbackProvider>
           <Routes>
-            <Route path="masuk" element={<Login />} />
-            <Route path="daftar" element={<Register />} />
+            <Route path="auth/login" element={<Login />} />
+            <Route path="auth/register" element={<Register />} />
+            <Route path="masuk" element={<Navigate to="/auth/login" replace />} />
+            <Route path="daftar" element={<Navigate to="/auth/register" replace />} />
             <Route element={<RequireAuth><Layout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
               <Route path="motor" element={<Motorcycles />} />
