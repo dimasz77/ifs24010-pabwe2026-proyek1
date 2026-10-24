@@ -43,9 +43,10 @@ BACKEND_DIR=../ifs24010-pabwe2026-proyek1-backend python e2e/e2e_test.py
 ## Build dan deploy
 ```bash
 npm run build             # hasil di dist/ (statis)
-npm start                 # sajikan dist/ + teruskan /api ke backend (lihat di bawah)
+npm start                   # sajikan dist/ + teruskan /api ke backend (lihat di bawah)
 ```
-`npm install` otomatis menjalankan build (lewat `postinstall`, dilewati bila `CI` terdeteksi), lalu `npm start` menyajikan `dist/` dengan fallback SPA. Server ini tanpa dependency tambahan dan **meneruskan `/api/*` ke backend** sehingga browser hanya berbicara ke satu origin (tanpa CORS).
+`npm install` otomatis menjalankan build (lewat `postinstall`, dilewati bila `CI` terdeteksi), lalu `npm start` menyajikan `dist/` dengan fallback SPA. Server ini tanpa dependency tambahan, mengompresi aset teks dengan gzip, dan **meneruskan `/api/*` ke backend** sehingga browser hanya berbicara ke satu origin (tanpa CORS). Halaman-halaman dimuat per rute agar JavaScript yang tidak dipakai tidak ikut diunduh pada awal kunjungan.
+Build produksi juga menghasilkan source map untuk audit/debugging; `public/robots.txt` menyediakan aturan crawler yang valid.
 
 | Variabel (runtime) | Keterangan |
 |---|---|

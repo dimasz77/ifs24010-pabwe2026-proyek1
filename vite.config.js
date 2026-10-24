@@ -6,6 +6,7 @@ const apiTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:4000';
 
 export default defineConfig({
   plugins: [react()],
+  build: { sourcemap: true },
   server: { port: 5173, proxy: { '/api': { target: apiTarget, changeOrigin: true } } },
   preview: { port: 4173, proxy: { '/api': { target: apiTarget, changeOrigin: true } } },
   test: {

@@ -22,7 +22,7 @@ function renderMotorCard(motor, onEdit, onDelete) {
         <span className="plate" aria-label={`Plat nomor ${motor.plate}`}>{motor.plate}</span>
         {motorAvailability(motor)}
       </div>
-      <h3>{motor.brand} {motor.model}</h3>
+      <h2>{motor.brand} {motor.model}</h2>
       <p className="motor-meta">
         <span><Gauge size={14} /> {motor.engine_cc} cc</span>
         <span><Calendar size={14} /> {motor.year}</span>

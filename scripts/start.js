@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createGzip } from 'node:zlib';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -37,7 +38,7 @@ if (!existsSync(join(dist, 'index.html'))) {
 }
 
 const TYPES = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.json': 'application/json', '.map': 'application/json',
 };
@@ -59,9 +60,19 @@ function proxy(req, res) {
   req.pipe(upstream);
 }
 
-function serveFile(res, file, cache) {
-  res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': cache });
-  createReadStream(file).pipe(res);
+function serveFile(req, res, file, cache) {
+  const compressible = /^(text\/|application\/(javascript|json|xml))|image\/svg\+xml/.test(TYPES[extname(file)] || '');
+  const gzip = compressible && statSync(file).size >= 1024 && /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+  res.writeHead(200, {
+    'Content-Type': TYPES[extname(file)] || 'application/octet-stream',
+    'Cache-Control': cache,
+    Vary: 'Accept-Encoding',
+    ...(gzip ? { 'Content-Encoding': 'gzip' } : {}),
+  });
+  if (req.method === 'HEAD') return res.end();
+  const stream = createReadStream(file);
+  if (gzip) stream.pipe(createGzip()).pipe(res);
+  else stream.pipe(res);
 }
 
 const server = createServer((req, res) => {
@@ -71,11 +82,11 @@ const server = createServer((req, res) => {
 
   const file = normalize(join(dist, path));
   if (file.startsWith(dist + sep) && existsSync(file) && statSync(file).isFile()) {
-    return serveFile(res, file, path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
+    return serveFile(req, res, file, path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
   }
   const index = join(dist, 'index.html');
   if (!existsSync(index)) return sendJson(res, 500, 'dist/ belum ada. Jalankan `npm run build`.');
-  return serveFile(res, index, 'no-cache');
+  return serveFile(req, res, index, 'no-cache');
 });
 
 server.listen(port, () => console.log(`[WEB] Frontend berjalan di http://localhost:${port}  (API_URL: ${apiUrl || '(belum diatur)'})`));
