@@ -20,8 +20,8 @@ export function AuthProvider({ children }) {
   // Token ditolak server (kedaluwarsa/tidak valid) -> keluar otomatis
   useEffect(() => {
     const onExpired = () => setUser(null);
-    window.addEventListener('auth:expired', onExpired);
-    return () => window.removeEventListener('auth:expired', onExpired);
+    globalThis.addEventListener('auth:expired', onExpired);
+    return () => globalThis.removeEventListener('auth:expired', onExpired);
   }, []);
 
   const finish = useCallback((res) => {

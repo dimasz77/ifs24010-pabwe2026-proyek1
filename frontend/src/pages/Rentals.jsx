@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Play, Undo2, Pencil, Ban, Trash2 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { api } from '../lib/api';
 import { useAsync, useDebounce } from '../lib/hooks';
+import { validateComponentProps } from '../lib/validateComponentProps';
 import { rupiah, formatDate, todayWib, RENTAL_STATUS } from '../lib/format';
 import { PageHeader, Spinner, ErrorState, EmptyState, Pagination, SearchBox, Badge, Field } from '../components/ui';
 import Modal from '../components/Modal';
@@ -18,6 +20,7 @@ const TABS = [
 ];
 
 function ReturnDialog({ rental, onClose, onDone }) {
+  validateComponentProps(ReturnDialog, { rental, onClose, onDone });
   const toast = useToast();
   const today = todayWib();
   const [date, setDate] = useState(today);
@@ -56,6 +59,19 @@ function ReturnDialog({ rental, onClose, onDone }) {
   );
 }
 
+ReturnDialog.propTypes = {
+  rental: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    start_date: PropTypes.string.isRequired,
+    end_date: PropTypes.string.isRequired,
+    motorcycle_name: PropTypes.string.isRequired,
+    motorcycle_plate: PropTypes.string.isRequired,
+    customer_name: PropTypes.string.isRequired,
+  }).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDone: PropTypes.func.isRequired,
+};
+
 export default function Rentals() {
   const confirm = useConfirm();
   const toast = useToast();
@@ -79,7 +95,8 @@ export default function Rentals() {
       start: { title: 'Mulai sewa?', message: `${r.customer_name} mengambil ${r.motorcycle_name}. Status berubah menjadi berjalan.`, confirmText: 'Mulai sewa', tone: 'primary', done: 'Sewa dimulai' },
       cancel: { title: 'Batalkan pesanan?', message: `Pesanan ${r.code} akan dibatalkan dan motor kembali tersedia untuk tanggal tersebut.`, confirmText: 'Batalkan pesanan', tone: 'danger', done: 'Pesanan dibatalkan' },
     }[action];
-    if (!(await confirm(text))) return;
+    const confirmed = await confirm(text);
+    if (!confirmed) return;
     try {
       await api.patch(`/rentals/${r.id}/status`, { action });
       toast.success(text.done);

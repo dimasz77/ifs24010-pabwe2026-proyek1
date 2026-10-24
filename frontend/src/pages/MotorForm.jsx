@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { api, ApiError } from '../lib/api';
+import { validateComponentProps } from '../lib/validateComponentProps';
 import { validateMotor } from '../lib/validators';
 import { MOTOR_TYPES } from '../lib/format';
 import { Field } from '../components/ui';
@@ -12,6 +14,7 @@ const EMPTY = {
 };
 
 export default function MotorForm({ motor, locations, onClose, onSaved }) {
+  validateComponentProps(MotorForm, { motor, locations, onClose, onSaved });
   const toast = useToast();
   const [v, setV] = useState(motor ? { ...EMPTY, ...motor, color: motor.color || '', notes: motor.notes || '' } : EMPTY);
   const [errors, setErrors] = useState({});
@@ -100,3 +103,29 @@ export default function MotorForm({ motor, locations, onClose, onSaved }) {
     </Modal>
   );
 }
+
+MotorForm.propTypes = {
+  motor: PropTypes.oneOfType([
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      plate: PropTypes.string,
+      brand: PropTypes.string,
+      model: PropTypes.string,
+      type: PropTypes.string,
+      engine_cc: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      year: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      color: PropTypes.string,
+      price_per_day: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      status: PropTypes.string,
+      location_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      notes: PropTypes.string,
+    }),
+    PropTypes.oneOf([null]),
+  ]),
+  locations: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    name: PropTypes.string.isRequired,
+  })).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSaved: PropTypes.func.isRequired,
+};

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/api';
+import { isValidEmail } from '../lib/validators';
 import AuthShell from '../components/AuthShell';
 import { Field } from '../components/ui';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[A-Za-z0-9_.-]+$/;
 
 export function validateRegister(v) {
@@ -15,7 +15,7 @@ export function validateRegister(v) {
   if (u.length < 3) e.username = 'Username minimal 3 karakter';
   else if (u.length > 30) e.username = 'Username maksimal 30 karakter';
   else if (!USERNAME_RE.test(u)) e.username = 'Username hanya boleh huruf, angka, titik, garis bawah, dan strip';
-  if (v.email.trim() && !EMAIL_RE.test(v.email.trim())) e.email = 'Email tidak valid';
+  if (v.email.trim() && !isValidEmail(v.email.trim())) e.email = 'Email tidak valid';
   if (v.password.length < 6) e.password = 'Kata sandi minimal 6 karakter';
   if (v.confirm !== v.password) e.confirm = 'Konfirmasi kata sandi tidak sama';
   return e;

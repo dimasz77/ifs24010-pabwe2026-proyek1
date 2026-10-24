@@ -3,6 +3,8 @@ import Layout from './components/Layout';
 import { FeedbackProvider } from './components/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/ui';
+import PropTypes from 'prop-types';
+import { ReactNodePropType, validateComponentProps } from './lib/validateComponentProps';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -13,12 +15,17 @@ import RentalForm from './pages/RentalForm';
 import NotFound from './pages/NotFound';
 
 function RequireAuth({ children }) {
+  validateComponentProps(RequireAuth, { children });
   const { user, ready } = useAuth();
   const location = useLocation();
   if (!ready) return <Spinner label="Memeriksa sesi..." />;
   if (!user) return <Navigate to="/auth/login" replace state={{ from: location.pathname + location.search }} />;
   return children;
 }
+
+RequireAuth.propTypes = {
+  children: ReactNodePropType.isRequired,
+};
 
 export default function App() {
   return (

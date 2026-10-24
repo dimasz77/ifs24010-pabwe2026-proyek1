@@ -209,7 +209,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Overlay, modal, dialog, toast */
 .overlay { position: fixed; inset: 0; background: rgba(10, 47, 59, 0.55); display: grid; place-items: center; padding: 16px; z-index: 50; overflow-y: auto; }
-.modal, .dialog { background: var(--surface); border-radius: 10px; width: min(480px, 100%); padding: 22px; border-top: 8px solid var(--crimson); max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal, .dialog { background: var(--surface); border: 0; border-top: 8px solid var(--crimson); border-radius: 10px; width: min(480px, 100%); margin: 0; padding: 22px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal { position: relative; }
 .modal-wide { width: min(720px, 100%); }
 .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-foot, .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }

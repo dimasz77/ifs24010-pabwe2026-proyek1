@@ -38,7 +38,7 @@ export default function Dashboard() {
           <h2>Kondisi armada</h2>
           <p className="muted">{fleet.total} motor terdaftar</p>
         </div>
-        <div className="segbar" role="img" aria-label={segs.map((s) => `${s.label} ${s.value}`).join(', ')}>
+        <div className="segbar" role="group" aria-label={segs.map((s) => `${s.label} ${s.value}`).join(', ')}>
           {segs.map((s) => s.value > 0 && <span key={s.key} className={`seg seg-${s.key}`} style={{ flexGrow: s.value }} />)}
         </div>
         <ul className="seg-legend">

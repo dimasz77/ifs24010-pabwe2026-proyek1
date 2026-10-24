@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CircleCheck, CircleAlert, X } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
 const ToastCtx = createContext(null);
 const ConfirmCtx = createContext(null);
@@ -8,6 +10,7 @@ export const useToast = () => useContext(ToastCtx);
 export const useConfirm = () => useContext(ConfirmCtx);
 
 export function FeedbackProvider({ children }) {
+  validateComponentProps(FeedbackProvider, { children });
   const [toasts, setToasts] = useState([]);
   const [dialog, setDialog] = useState(null);
   const idRef = useRef(0);
@@ -30,15 +33,15 @@ export function FeedbackProvider({ children }) {
   useEffect(() => {
     if (!dialog) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') { dialog.resolve(false); setDialog(null); } };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
   }, [dialog]);
 
   return (
     <ToastCtx.Provider value={toast}>
       <ConfirmCtx.Provider value={confirm}>
         {children}
-        <div className="toasts" role="status" aria-live="polite">
+        <output className="toasts" aria-live="polite">
           {toasts.map((t) => (
             <div key={t.id} className={`toast toast-${t.kind}`}>
               {t.kind === 'success' ? <CircleCheck size={18} /> : <CircleAlert size={18} />}
@@ -46,9 +49,9 @@ export function FeedbackProvider({ children }) {
               <button className="icon-btn" aria-label="Tutup notifikasi" onClick={() => dismiss(t.id)}><X size={16} /></button>
             </div>
           ))}
-        </div>
+        </output>
         {dialog && (
-          <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && close(false)}>
+          <div className="overlay">
             <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
               <h3 id="confirm-title">{dialog.title}</h3>
               <p>{dialog.message}</p>
@@ -65,3 +68,7 @@ export function FeedbackProvider({ children }) {
     </ToastCtx.Provider>
   );
 }
+
+FeedbackProvider.propTypes = {
+  children: ReactNodePropType.isRequired,
+};

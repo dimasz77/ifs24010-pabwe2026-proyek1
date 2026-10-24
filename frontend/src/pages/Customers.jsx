@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Phone } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { api, ApiError } from '../lib/api';
 import { useAsync, useDebounce } from '../lib/hooks';
+import { validateComponentProps } from '../lib/validateComponentProps';
 import { validateCustomer } from '../lib/validators';
 import { PageHeader, Spinner, ErrorState, EmptyState, Pagination, SearchBox, Field } from '../components/ui';
 import Modal from '../components/Modal';
@@ -11,6 +13,7 @@ import { useConfirm, useToast } from '../components/Feedback';
 const EMPTY = { full_name: '', phone: '', email: '', id_number: '', sim_number: '', origin: '' };
 
 function CustomerForm({ customer, onClose, onSaved }) {
+  validateComponentProps(CustomerForm, { customer, onClose, onSaved });
   const toast = useToast();
   const [v, setV] = useState(customer ? { ...EMPTY, ...Object.fromEntries(Object.entries(customer).map(([k, x]) => [k, x ?? ''])) } : EMPTY);
   const [errors, setErrors] = useState({});
@@ -62,6 +65,23 @@ function CustomerForm({ customer, onClose, onSaved }) {
     </Modal>
   );
 }
+
+CustomerForm.propTypes = {
+  customer: PropTypes.oneOfType([
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      full_name: PropTypes.string,
+      phone: PropTypes.string,
+      email: PropTypes.string,
+      id_number: PropTypes.string,
+      sim_number: PropTypes.string,
+      origin: PropTypes.string,
+    }),
+    PropTypes.oneOf([null]),
+  ]),
+  onClose: PropTypes.func.isRequired,
+  onSaved: PropTypes.func.isRequired,
+};
 
 export default function Customers() {
   const confirm = useConfirm();

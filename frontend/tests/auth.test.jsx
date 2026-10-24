@@ -28,6 +28,18 @@ describe('validateRegister', () => {
     const e = validateRegister({ name: 'Di', username: 'a b', email: 'x', password: '123', confirm: '456' });
     expect(Object.keys(e)).toEqual(['name', 'username', 'email', 'password', 'confirm']);
   });
+
+  test('email panjang dengan pola titik berulang ditolak', () => {
+    const errors = validateRegister({
+      name: 'Dimas User',
+      username: 'dimas_user',
+      email: `${'a.'.repeat(25000)}!`,
+      password: 'abcdef',
+      confirm: 'abcdef',
+    });
+
+    expect(errors.email).toBe('Email tidak valid');
+  });
 });
 
 describe('Login', () => {

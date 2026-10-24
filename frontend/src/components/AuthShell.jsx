@@ -1,7 +1,10 @@
 import { Bike } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 import { Ulos } from './ui';
 
 export default function AuthShell({ title, subtitle, children, footer }) {
+  validateComponentProps(AuthShell, { title, subtitle, children, footer });
   return (
     <div className="auth-page">
       <aside className="auth-side">
@@ -24,3 +27,10 @@ export default function AuthShell({ title, subtitle, children, footer }) {
     </div>
   );
 }
+
+AuthShell.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  children: ReactNodePropType.isRequired,
+  footer: ReactNodePropType,
+};

@@ -2,9 +2,44 @@ import { addDays, diffDays } from './format';
 
 export const MAX_RENTAL_DAYS = 90;
 const PLATE_RE = /^[A-Za-z]{1,2}\s?\d{1,4}\s?[A-Za-z]{0,3}$/;
-const PHONE_RE = /^\+?[0-9][0-9\s-]{6,18}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?\d[\d\s-]{6,18}$/;
 const s = (v) => (v === undefined || v === null ? '' : String(v).trim());
+
+function isAsciiAlphaNumeric(code) {
+  return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+}
+
+export function isValidEmail(value) {
+  const email = s(value);
+  if (!email || email.length > 254) return false;
+
+  const at = email.indexOf('@');
+  if (at <= 0 || at !== email.lastIndexOf('@') || at === email.length - 1) return false;
+
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..') || domain.length > 253) {
+    return false;
+  }
+
+  const localSymbols = "!#$%&'*+/=?^_`{|}~-";
+  for (const char of local) {
+    const code = char.charCodeAt(0);
+    if (!isAsciiAlphaNumeric(code) && char !== '.' && !localSymbols.includes(char)) return false;
+  }
+
+  const labels = domain.split('.');
+  if (labels.length < 2 || labels.at(-1).length < 2) return false;
+
+  return labels.every((label) => {
+    if (label.length === 0 || label.length > 63 || label.startsWith('-') || label.endsWith('-')) return false;
+    for (const char of label) {
+      const code = char.charCodeAt(0);
+      if (!isAsciiAlphaNumeric(code) && char !== '-') return false;
+    }
+    return true;
+  });
+}
 
 export function validateMotor(v, year = new Date().getFullYear()) {
   const e = {};
@@ -32,7 +67,7 @@ export function validateCustomer(v) {
   if (s(v.full_name).length < 3) e.full_name = 'Nama lengkap minimal 3 karakter';
   if (!s(v.phone)) e.phone = 'Nomor telepon wajib diisi';
   else if (!PHONE_RE.test(s(v.phone))) e.phone = 'Nomor telepon tidak valid';
-  if (s(v.email) && !EMAIL_RE.test(s(v.email))) e.email = 'Email tidak valid';
+  if (s(v.email) && !isValidEmail(v.email)) e.email = 'Email tidak valid';
   if (s(v.id_number).length < 5) e.id_number = 'Nomor KTP/Paspor minimal 5 karakter';
   if (s(v.sim_number).length < 5) e.sim_number = 'Nomor SIM C minimal 5 karakter';
   return e;

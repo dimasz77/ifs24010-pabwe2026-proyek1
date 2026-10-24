@@ -23,7 +23,8 @@ function buildUrl(path, params) {
     if (v !== undefined && v !== null && v !== '') qs.set(k, v);
   });
   const s = qs.toString();
-  return `${BASE}${path}${s ? `?${s}` : ''}`;
+  const query = s ? `?${s}` : '';
+  return `${BASE}${path}${query}`;
 }
 
 async function request(path, { method = 'GET', body, params, signal } = {}) {
@@ -49,17 +50,18 @@ async function request(path, { method = 'GET', body, params, signal } = {}) {
 
   if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
     setToken(null);
-    window.dispatchEvent(new Event('auth:expired'));
+    globalThis.dispatchEvent(new Event('auth:expired'));
   }
 
-  if (!res.ok || !json || json.success === false) {
-    const e = json && json.error;
-    throw new ApiError(
-      e?.message || `Permintaan gagal (HTTP ${res.status}).`,
-      { status: res.status, code: e?.code || 'BAD_RESPONSE', details: e?.details || null },
-    );
+  if (res.ok && json && json.success !== false) {
+    return { data: json.data, meta: json.meta || null };
   }
-  return { data: json.data, meta: json.meta || null };
+
+  const e = json?.error;
+  throw new ApiError(
+    e?.message || `Permintaan gagal (HTTP ${res.status}).`,
+    { status: res.status, code: e?.code || 'BAD_RESPONSE', details: e?.details || null },
+  );
 }
 
 export const api = {

@@ -1,8 +1,14 @@
 import { WifiOff, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
-export const Ulos = ({ tall = false }) => <div className={tall ? 'ulos ulos-tall' : 'ulos'} aria-hidden="true" />;
+export const Ulos = ({ tall = false }) => {
+  validateComponentProps(Ulos, { tall });
+  return <div className={tall ? 'ulos ulos-tall' : 'ulos'} aria-hidden="true" />;
+};
 
 export function PageHeader({ title, subtitle, children }) {
+  validateComponentProps(PageHeader, { title, subtitle, children });
   return (
     <header className="page-head">
       <div>
@@ -14,9 +20,13 @@ export function PageHeader({ title, subtitle, children }) {
   );
 }
 
-export const Badge = ({ tone = 'muted', children }) => <span className={`badge badge-${tone}`}>{children}</span>;
+export const Badge = ({ tone = 'muted', children }) => {
+  validateComponentProps(Badge, { tone, children });
+  return <span className={`badge badge-${tone}`}>{children}</span>;
+};
 
 export function Spinner({ label = 'Memuat data...' }) {
+  validateComponentProps(Spinner, { label });
   return (
     <div className="state" role="status">
       <div className="spinner" />
@@ -26,6 +36,7 @@ export function Spinner({ label = 'Memuat data...' }) {
 }
 
 export function EmptyState({ title, text, action }) {
+  validateComponentProps(EmptyState, { title, text, action });
   return (
     <div className="state empty">
       <p className="state-title">{title}</p>
@@ -36,6 +47,7 @@ export function EmptyState({ title, text, action }) {
 }
 
 export function ErrorState({ error, onRetry }) {
+  validateComponentProps(ErrorState, { error, onRetry });
   const network = error?.isNetwork;
   return (
     <div className="state error" role="alert">
@@ -50,6 +62,7 @@ export function ErrorState({ error, onRetry }) {
 }
 
 export function Pagination({ meta, onPage }) {
+  validateComponentProps(Pagination, { meta, onPage });
   if (!meta || meta.totalPages <= 1) return null;
   return (
     <nav className="pagination" aria-label="Halaman">
@@ -65,6 +78,7 @@ export function Pagination({ meta, onPage }) {
 }
 
 export function SearchBox({ value, onChange, placeholder }) {
+  validateComponentProps(SearchBox, { value, onChange, placeholder });
   return (
     <label className="searchbox">
       <Search size={18} aria-hidden="true" />
@@ -74,11 +88,71 @@ export function SearchBox({ value, onChange, placeholder }) {
 }
 
 export function Field({ label, error, hint, children, htmlFor }) {
+  validateComponentProps(Field, { label, error, hint, children, htmlFor });
+  let message = null;
+  if (error) message = <p className="field-error" role="alert">{error}</p>;
+  else if (hint) message = <p className="field-hint">{hint}</p>;
   return (
     <div className={`field ${error ? 'has-error' : ''}`}>
       <label htmlFor={htmlFor}>{label}</label>
       {children}
-      {error ? <p className="field-error" role="alert">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
+      {message}
     </div>
   );
 }
+
+Ulos.propTypes = {
+  tall: PropTypes.bool,
+};
+
+PageHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  children: ReactNodePropType,
+};
+
+Badge.propTypes = {
+  tone: PropTypes.string,
+  children: ReactNodePropType.isRequired,
+};
+
+Spinner.propTypes = {
+  label: PropTypes.string,
+};
+
+EmptyState.propTypes = {
+  title: PropTypes.string.isRequired,
+  text: PropTypes.string,
+  action: ReactNodePropType,
+};
+
+ErrorState.propTypes = {
+  error: PropTypes.shape({
+    isNetwork: PropTypes.bool,
+    message: PropTypes.string,
+  }).isRequired,
+  onRetry: PropTypes.func,
+};
+
+Pagination.propTypes = {
+  meta: PropTypes.shape({
+    page: PropTypes.number.isRequired,
+    totalPages: PropTypes.number.isRequired,
+    total: PropTypes.number.isRequired,
+  }),
+  onPage: PropTypes.func.isRequired,
+};
+
+SearchBox.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string.isRequired,
+};
+
+Field.propTypes = {
+  label: PropTypes.string.isRequired,
+  error: PropTypes.string,
+  hint: ReactNodePropType,
+  children: ReactNodePropType.isRequired,
+  htmlFor: PropTypes.string.isRequired,
+};

@@ -1,4 +1,4 @@
-import { validateMotor, validateCustomer, validateRental } from '../src/lib/validators';
+import { validateMotor, validateCustomer, validateRental, isValidEmail } from '../src/lib/validators';
 
 const motor = { plate: 'BB 1234 AB', brand: 'Honda', model: 'Beat', type: 'matic', engine_cc: 110, year: 2023, price_per_day: 80000, location_id: 1 };
 
@@ -24,6 +24,16 @@ describe('validateCustomer', () => {
     expect(e.phone).toBeDefined();
   });
   test('nama terlalu pendek', () => expect(validateCustomer({ ...c, full_name: 'Bu' }).full_name).toBeDefined());
+});
+
+describe('isValidEmail', () => {
+  test('accepts valid addresses and rejects malformed or oversized input', () => {
+    expect(isValidEmail('budi.santoso+rentals@example.co.id')).toBe(true);
+    expect(isValidEmail('budi..santoso@example.co.id')).toBe(false);
+    expect(isValidEmail('budi@example..co.id')).toBe(false);
+    expect(isValidEmail(`${'a'.repeat(65)}@example.com`)).toBe(false);
+    expect(isValidEmail(`${'a'.repeat(50000)}@example.com`)).toBe(false);
+  });
 });
 
 describe('validateRental', () => {

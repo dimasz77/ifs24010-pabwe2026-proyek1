@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { FeedbackProvider } from '../src/components/Feedback';
 import Customers from '../src/pages/Customers';
 import Dashboard from '../src/pages/Dashboard';
+import NotFound from '../src/pages/NotFound';
 import RentalForm from '../src/pages/RentalForm';
 import Rentals from '../src/pages/Rentals';
 
@@ -88,6 +89,36 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Budi Santoso')).toHaveLength(2);
     expect(screen.getByText('Rp 240.000')).toBeInTheDocument();
     expect(screen.getByText('Terlambat')).toBeInTheDocument();
+  });
+
+  test('shows empty dashboard panels when there are no rentals', async () => {
+    mockFetch(() =>
+      respond({
+        today: '2026-10-24',
+        fleet: { available: 0, rented: 0, maintenance: 0, total: 0 },
+        rentals: { overdue: 0, active: 0, booked: 0, completed_this_month: 0 },
+        customers: 0,
+        revenue_this_month: 0,
+        fleet_by_type: [],
+        upcoming_returns: [],
+        recent_rentals: [],
+      }),
+    );
+
+    renderPage(<Dashboard />);
+
+    expect(await screen.findByText('Tidak ada motor yang sedang disewa')).toBeInTheDocument();
+    expect(screen.getByText('Belum ada penyewaan')).toBeInTheDocument();
+    expect(screen.queryByText(/motor terlambat dikembalikan/)).not.toBeInTheDocument();
+  });
+});
+
+describe('NotFound', () => {
+  test('offers a link back to the dashboard', () => {
+    renderPage(<NotFound />);
+
+    expect(screen.getByText('Halaman tidak ditemukan')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kembali ke beranda' })).toHaveAttribute('href', '/');
   });
 });
 
