@@ -45,6 +45,30 @@ describe('validateRegister', () => {
 
     expect(errors.email).toBe('Email tidak valid');
   });
+
+  test('rejects usernames longer than the maximum length', () => {
+    const errors = validateRegister({
+      name: 'Dimas Sidabutar',
+      username: 'd'.repeat(31),
+      email: '',
+      password: 'rahasia123',
+      confirm: 'rahasia123',
+    });
+
+    expect(errors.username).toBe('Username maksimal 30 karakter');
+  });
+
+  test('rejects usernames shorter than the minimum length', () => {
+    const errors = validateRegister({
+      name: 'Dimas Sidabutar',
+      username: 'di',
+      email: '',
+      password: 'rahasia123',
+      confirm: 'rahasia123',
+    });
+
+    expect(errors.username).toBe('Username minimal 3 karakter');
+  });
 });
 
 describe('Login', () => {
@@ -89,6 +113,31 @@ describe('Login', () => {
 });
 
 describe('Register', () => {
+  test('successfully registers a user and redirects to the home page', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(201, {
+      success: true,
+      data: { user: { id: 2, name: 'Dimas Sidabutar' }, token: 'new-token' },
+    }));
+    const user = userEvent.setup();
+
+    wrap(<Register />, '/auth/register');
+    await user.type(screen.getByLabelText('Nama lengkap'), ' Dimas Sidabutar ');
+    await user.type(screen.getByLabelText('Username'), ' dimas ');
+    await user.type(screen.getByLabelText('Email (opsional)'), ' dimas@example.com ');
+    await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
+    await user.type(screen.getByLabelText('Ulangi kata sandi'), 'rahasia123');
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+
+    expect(await screen.findByText('BERANDA')).toBeInTheDocument();
+    expect(getToken()).toBe('new-token');
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+      name: 'Dimas Sidabutar',
+      username: 'dimas',
+      email: 'dimas@example.com',
+      password: 'rahasia123',
+    });
+  });
+
   test('konfirmasi sandi berbeda ditolak di frontend', async () => {
     const spy = vi.spyOn(globalThis, 'fetch');
     const user = userEvent.setup();
@@ -112,6 +161,19 @@ describe('Register', () => {
     await user.type(screen.getByLabelText('Ulangi kata sandi'), 'rahasia123');
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
     expect(await screen.findByText('Username sudah dipakai')).toBeInTheDocument();
+  });
+
+  test('shows a general registration error when the request cannot reach the server', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'));
+    const user = userEvent.setup();
+    wrap(<Register />, '/auth/register');
+    await user.type(screen.getByLabelText('Nama lengkap'), 'Dimas Sidabutar');
+    await user.type(screen.getByLabelText('Username'), 'dimas');
+    await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
+    await user.type(screen.getByLabelText('Ulangi kata sandi'), 'rahasia123');
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server tidak dapat dihubungi');
   });
 });
 

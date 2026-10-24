@@ -1,9 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
+import { createElement } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { FeedbackProvider, useConfirm, useToast } from '../src/components/Feedback';
 import Modal from '../src/components/Modal';
+import { ReactNodePropType } from '../src/lib/validateComponentProps';
 import {
   Badge,
   EmptyState,
@@ -34,12 +36,20 @@ function FeedbackActions() {
         message: 'Lanjutkan tindakan?',
         confirmText: 'Lanjutkan',
       })))}>Open confirm</button>
+      <button onClick={() => confirm({ title: 'Konfirmasi default', message: 'Lanjutkan?', tone: 'danger' })}>Open default confirm</button>
       <p>{result}</p>
     </>
   );
 }
 
 describe('UI components', () => {
+  test('validates optional and required React node props', () => {
+    expect(ReactNodePropType({ children: null }, 'children', 'Example', 'prop', 'children')).toBeNull();
+    expect(ReactNodePropType({ children: [createElement('span'), 'text', 1] }, 'children', 'Example', 'prop', 'children')).toBeNull();
+    expect(ReactNodePropType({ children: { invalid: true } }, 'children', 'Example', 'prop', 'children')).toBeInstanceOf(Error);
+    expect(ReactNodePropType.isRequired({ children: undefined }, 'children', 'Example', 'prop', 'children')).toBeInstanceOf(Error);
+  });
+
   test('renders headers, badges, empty states, and loading states', () => {
     render(
       <>
@@ -126,6 +136,29 @@ describe('Feedback and modal behavior', () => {
     await waitFor(() => expect(screen.getByRole('status')).not.toHaveTextContent('Berhasil disimpan'));
   });
 
+  test('automatically dismisses success and error notifications after their timeout', async () => {
+    vi.useFakeTimers();
+    render(<FeedbackProvider><FeedbackActions /></FeedbackProvider>);
+
+    try {
+      await act(async () => {
+        screen.getByRole('button', { name: 'Success toast' }).click();
+        screen.getByRole('button', { name: 'Error toast' }).click();
+      });
+      expect(screen.getByRole('status')).toHaveTextContent('Berhasil disimpan');
+      expect(screen.getByRole('status')).toHaveTextContent('Gagal menyimpan');
+
+      await act(async () => vi.advanceTimersByTime(4000));
+      expect(screen.getByRole('status')).not.toHaveTextContent('Berhasil disimpan');
+      expect(screen.getByRole('status')).toHaveTextContent('Gagal menyimpan');
+
+      await act(async () => vi.advanceTimersByTime(3000));
+      expect(screen.getByRole('status')).not.toHaveTextContent('Gagal menyimpan');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('resolves confirmations from buttons and Escape', async () => {
     const user = userEvent.setup();
     render(<FeedbackProvider><FeedbackActions /></FeedbackProvider>);
@@ -133,8 +166,14 @@ describe('Feedback and modal behavior', () => {
     await user.click(screen.getByRole('button', { name: 'Open confirm' }));
     const dialog = screen.getByRole('alertdialog');
     expect(dialog).toHaveTextContent('Lanjutkan tindakan?');
+    await user.keyboard('x');
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Lanjutkan' }));
     expect(await screen.findByText('true')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Open default confirm' }));
+    expect(screen.getByRole('button', { name: 'Ya, lanjutkan' })).toHaveClass('btn-danger');
+    await user.click(screen.getByRole('button', { name: 'Ya, lanjutkan' }));
 
     await user.click(screen.getByRole('button', { name: 'Open confirm' }));
     await user.keyboard('{Escape}');

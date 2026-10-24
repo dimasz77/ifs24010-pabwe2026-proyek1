@@ -1,4 +1,4 @@
-import { rupiah, formatDate, todayWib, addDays, diffDays, typeLabel } from '../src/lib/format';
+import { rupiah, formatDate, formatLongDate, todayWib, addDays, diffDays, typeLabel } from '../src/lib/format';
 
 describe('format', () => {
   test('rupiah memakai pemisah ribuan Indonesia', () => {
@@ -11,6 +11,11 @@ describe('format', () => {
     expect(formatDate('2026-10-21')).toMatch(/2026/);
     expect(formatDate(null)).toBe('-');
     expect(formatDate('bukan-tanggal')).toBe('-');
+  });
+  test('formatLongDate and unknown motorcycle types have safe fallbacks', () => {
+    expect(formatLongDate('2026-10-21')).toMatch(/2026/);
+    expect(formatLongDate('bukan-tanggal')).toBe('');
+    expect(typeLabel('unknown')).toBe('unknown');
   });
   test('todayWib memakai zona waktu Asia/Jakarta', () => {
     expect(todayWib(new Date('2026-10-21T20:00:00Z'))).toBe('2026-10-22');

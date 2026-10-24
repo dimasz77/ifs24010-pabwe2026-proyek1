@@ -59,4 +59,31 @@ describe('App routes and authenticated layout', () => {
     expect(await screen.findByRole('heading', { name: 'Masuk' })).toBeInTheDocument();
     expect(localStorage.getItem('jenika_token')).toBeNull();
   });
+
+  test('keeps the layout online when its health check succeeds', async () => {
+    localStorage.setItem('jenika_token', 'test-session-token');
+    window.history.replaceState({}, '', '/');
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      if (String(url).includes('/auth/me')) return Promise.resolve(respond({ name: 'Admin', username: 'admin' }));
+      if (String(url).includes('/health')) return Promise.resolve(respond({ status: 'ok' }));
+      if (String(url).includes('/dashboard/summary')) {
+        return Promise.resolve(respond({
+          today: '2026-10-24',
+          fleet: { available: 0, rented: 0, maintenance: 0, total: 0 },
+          rentals: { overdue: 0, active: 0, booked: 0, completed_this_month: 0 },
+          customers: 0,
+          revenue_this_month: 0,
+          fleet_by_type: [],
+          upcoming_returns: [],
+          recent_rentals: [],
+        }));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' })).toBeInTheDocument();
+    expect(screen.queryByText(/Server backend tidak merespons/)).not.toBeInTheDocument();
+  });
 });

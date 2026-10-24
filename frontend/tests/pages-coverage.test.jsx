@@ -52,6 +52,32 @@ function renderPage(ui, path = '/') {
 afterEach(() => vi.restoreAllMocks());
 
 describe('Dashboard', () => {
+  test('shows a retry action when dashboard loading fails', async () => {
+    let failed = true;
+    const fetchSpy = mockFetch(() => {
+      if (failed) return Promise.reject(new TypeError('offline'));
+      return respond({
+        today: '2026-10-24',
+        fleet: { available: 1, rented: 0, maintenance: 0, total: 1 },
+        rentals: { overdue: 0, active: 0, booked: 0, completed_this_month: 0 },
+        customers: 1,
+        revenue_this_month: 0,
+        fleet_by_type: [],
+        upcoming_returns: [],
+        recent_rentals: [],
+      });
+    });
+    const user = userEvent.setup();
+
+    renderPage(<Dashboard />);
+
+    expect(await screen.findByText('Server tidak dapat dihubungi')).toBeInTheDocument();
+    failed = false;
+    await user.click(screen.getByRole('button', { name: /coba lagi/i }));
+    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' })).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   test('menampilkan ringkasan armada dan penyewaan terbaru', async () => {
     mockFetch(() =>
       respond({
@@ -109,6 +135,32 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText('Tidak ada motor yang sedang disewa')).toBeInTheDocument();
     expect(screen.getByText('Belum ada penyewaan')).toBeInTheDocument();
+    expect(screen.queryByText(/motor terlambat dikembalikan/)).not.toBeInTheDocument();
+  });
+
+  test('shows an on-time upcoming return without overdue styling', async () => {
+    mockFetch(() => respond({
+      today: '2026-10-24',
+      fleet: { available: 0, rented: 1, maintenance: 0, total: 1 },
+      rentals: { overdue: 0, active: 1, booked: 0, completed_this_month: 0 },
+      customers: 1,
+      revenue_this_month: 0,
+      fleet_by_type: [],
+      upcoming_returns: [{
+        id: 11,
+        motorcycle_name: 'Honda Beat',
+        motorcycle_plate: 'BB 3101 AA',
+        customer_name: 'Budi Santoso',
+        end_date: '2026-10-25',
+        is_overdue: false,
+      }],
+      recent_rentals: [],
+    }));
+
+    renderPage(<Dashboard />);
+
+    expect(await screen.findByText('Honda Beat')).toBeInTheDocument();
+    expect(screen.queryByText('Terlambat')).not.toBeInTheDocument();
     expect(screen.queryByText(/motor terlambat dikembalikan/)).not.toBeInTheDocument();
   });
 });

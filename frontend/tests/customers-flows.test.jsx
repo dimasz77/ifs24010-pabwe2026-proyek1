@@ -125,6 +125,27 @@ describe('Customers flows', () => {
     expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'PUT')).toBe(true);
   });
 
+  test('normalizes empty customer fields and saves an edit successfully', async () => {
+    const customerWithEmptyFields = { ...customer, email: null, id_number: null, sim_number: null, origin: null };
+    const fetchSpy = mockFetch((url, options) => {
+      if (options.method === 'PUT') return respond({ ...customerWithEmptyFields, ...JSON.parse(options.body) });
+      return respond([customerWithEmptyFields]);
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    const name = await screen.findByText('Budi Santoso');
+    expect(within(name.closest('tr')).getByText('-')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ubah Budi Santoso' }));
+    expect(screen.getByLabelText('Email (opsional)')).toHaveValue('');
+    await user.type(screen.getByLabelText('Nomor KTP / Paspor'), '12345');
+    await user.type(screen.getByLabelText('Nomor SIM C'), 'SIM123');
+    await user.click(screen.getByRole('button', { name: 'Simpan pelanggan' }));
+
+    expect(await screen.findByText('Data pelanggan diperbarui')).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'PUT')).toBe(true);
+  });
+
   test('shows API network errors on the form', async () => {
     mockFetch((url, options) => {
       if (options.method === 'POST') return Promise.reject(new TypeError('offline'));

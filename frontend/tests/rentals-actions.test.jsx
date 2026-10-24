@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -39,6 +39,11 @@ const respond = (data, meta = {
   status: 200,
   json: () => Promise.resolve({ success: true, data, meta }),
 });
+const reject = () => ({
+  ok: false,
+  status: 409,
+  json: () => Promise.resolve({ success: false, error: { message: 'Tindakan gagal' } }),
+});
 
 function mockFetch(handler) {
   return vi.spyOn(globalThis, 'fetch').mockImplementation((url, options = {}) =>
@@ -57,6 +62,41 @@ function renderPage(path = '/sewa') {
 afterEach(() => vi.restoreAllMocks());
 
 describe('Rental actions', () => {
+  test('allows editing the return date and displays a failed return request', async () => {
+    mockFetch((url, options) => {
+      if (options.method === 'PATCH') return reject();
+      return respond([runningRental]);
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /kembalikan/i }));
+    fireEvent.change(screen.getByLabelText('Tanggal pengembalian'), { target: { value: '2026-10-23' } });
+    expect(screen.getByLabelText('Tanggal pengembalian')).toHaveValue('2026-10-23');
+    await user.click(screen.getByRole('button', { name: 'Selesaikan sewa' }));
+
+    expect(await screen.findByText('Tindakan gagal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Terima pengembalian motor' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Batal' }));
+    expect(screen.queryByRole('dialog', { name: 'Terima pengembalian motor' })).not.toBeInTheDocument();
+  });
+
+  test('returns a motorcycle on time without a late fee', async () => {
+    const dueLater = { ...runningRental, end_date: '2999-01-01' };
+    const user = userEvent.setup();
+    mockFetch((url, options) => {
+      if (options.method === 'PATCH') return respond({ late_fee: 0 });
+      return respond([dueLater]);
+    });
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /kembalikan/i }));
+    expect(screen.getByText('Tepat waktu: tanpa denda.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Selesaikan sewa' }));
+
+    expect(await screen.findByText('Motor dikembalikan tanpa denda')).toBeInTheDocument();
+  });
+
   test('returns an overdue rental and refreshes the list', async () => {
     let returned = false;
     const fetchSpy = mockFetch((url, options) => {
@@ -115,6 +155,21 @@ describe('Rental actions', () => {
     expect(await screen.findByText('Tidak ada data sewa')).toBeInTheDocument();
   });
 
+  test('leaves a rental unchanged when cancellation or deletion is not confirmed', async () => {
+    const fetchSpy = mockFetch(() => respond([bookedRental]));
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Batalkan SWA-0008' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Batal' }));
+    await user.click(screen.getByRole('button', { name: 'Hapus SWA-0008' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Batal' }));
+
+    expect(screen.getByText('SWA-0008')).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.some(([, options]) => ['PATCH', 'DELETE'].includes(options.method))).toBe(false);
+  });
+
+
   test('shows empty overdue state and switches status tabs', async () => {
     const fetchSpy = mockFetch(() => respond([]));
     const user = userEvent.setup();
@@ -129,5 +184,97 @@ describe('Rental actions', () => {
       expect.anything(),
     ));
     expect(screen.getByRole('tab', { name: 'Selesai' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('shows return date and late-fee details in rental history', async () => {
+    const completed = {
+      ...bookedRental,
+      status: 'selesai',
+      returned_date: '2026-10-23',
+      late_fee: 20000,
+    };
+    mockFetch(() => respond([completed]));
+
+    renderPage('/sewa?status=selesai');
+
+    expect(await screen.findByText(/kembali/)).toBeInTheDocument();
+    expect(screen.getByText('termasuk denda Rp 20.000')).toBeInTheDocument();
+  });
+
+  test('shows retryable errors and filters the rental list by search text', async () => {
+    let attempts = 0;
+    const fetchSpy = mockFetch((url) => {
+      attempts += 1;
+      if (attempts === 1) return Promise.reject(new TypeError('offline'));
+      return respond([bookedRental]);
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    expect(await screen.findByText('Server tidak dapat dihubungi')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /coba lagi/i }));
+    expect(await screen.findByText('SWA-0008')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox', { name: 'Cari kode, pelanggan, atau motor' }), 'SWA');
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('q=SWA'),
+      expect.anything(),
+    ));
+  });
+
+  test('shows notifications when starting or deleting a rental fails', async () => {
+    mockFetch((url, options) => {
+      if (options.method === 'PATCH' || options.method === 'DELETE') return reject();
+      return respond([bookedRental]);
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /mulai/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Mulai sewa' }));
+    expect(await screen.findByText('Tindakan gagal')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Hapus SWA-0008' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Hapus data' }));
+    expect(await screen.findAllByText('Tindakan gagal')).toHaveLength(2);
+  });
+
+  test('deletes the only rental from a later page and navigates to the previous page', async () => {
+    const requestedPages = [];
+    const fetchSpy = mockFetch((url, options) => {
+      if (options.method === 'DELETE') return respond(null);
+      const page = new URL(url, 'http://localhost').searchParams.get('page') || '1';
+      requestedPages.push(page);
+      return respond([bookedRental], { page: Number(page), limit: 10, total: 11, totalPages: 2 });
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findByText('SWA-0008');
+    await user.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    await waitFor(() => expect(requestedPages.at(-1)).toBe('2'));
+    await user.click(await screen.findByRole('button', { name: 'Hapus SWA-0008' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Hapus data' }));
+
+    await waitFor(() => expect(requestedPages.at(-1)).toBe('1'));
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'DELETE')).toBe(true);
+  });
+
+  test('supports the overdue tab and clears active tabs', async () => {
+    const fetchSpy = mockFetch(() => respond([bookedRental]));
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findByText('SWA-0008');
+    await user.click(screen.getByRole('tab', { name: 'Terlambat' }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('overdue=true'),
+      expect.anything(),
+    ));
+    await user.click(screen.getByRole('tab', { name: 'Semua' }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
+      expect.not.stringContaining('status='),
+      expect.anything(),
+    ));
   });
 });

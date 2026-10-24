@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { FeedbackProvider } from '../src/components/Feedback';
 import Motorcycles from '../src/pages/Motorcycles';
+import MotorForm from '../src/pages/MotorForm';
 
 const locations = [{ id: 1, name: 'Dermaga Tomok' }];
 const motorcycles = [
@@ -92,8 +93,13 @@ describe('Motorcycles management', () => {
     await user.click(screen.getByRole('button', { name: 'Tutup' }));
 
     await user.click(screen.getByRole('button', { name: 'Hapus Honda Beat' }));
+    const cancelledConfirmation = screen.getByRole('alertdialog');
+    expect(cancelledConfirmation).toHaveTextContent('Hapus motor?');
+    await user.click(within(cancelledConfirmation).getByRole('button', { name: 'Batal' }));
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'DELETE')).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Hapus Honda Beat' }));
     const confirmation = screen.getByRole('alertdialog');
-    expect(confirmation).toHaveTextContent('Hapus motor?');
     await user.click(within(confirmation).getByRole('button', { name: 'Hapus motor' }));
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
@@ -101,7 +107,7 @@ describe('Motorcycles management', () => {
       expect.objectContaining({ method: 'DELETE' }),
     ));
     expect(await screen.findByText('Motor berhasil dihapus')).toBeInTheDocument();
-  });
+  }, 10000);
 
   test('shows filtered empty state and clears filters', async () => {
     mockFetch((url) => url.includes('/locations')
@@ -116,6 +122,8 @@ describe('Motorcycles management', () => {
     await user.click(screen.getAllByRole('button', { name: 'Hapus filter' })[0]);
     expect(await screen.findByText('Belum ada motor')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Tambah motor' }).length).toBeGreaterThan(0);
+    await user.click(screen.getAllByRole('button', { name: 'Tambah motor' })[0]);
+    expect(screen.getByRole('dialog', { name: 'Tambah motor' })).toBeInTheDocument();
   });
 
   test('shows backend error and retries', async () => {
@@ -136,5 +144,123 @@ describe('Motorcycles management', () => {
     await user.click(screen.getByRole('button', { name: /coba lagi/i }));
     expect(await screen.findByText('Honda Beat')).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  test('opens and saves the add form from the baru query parameter', async () => {
+    const fetchSpy = mockFetch((url, options) => {
+      if (url.includes('/locations')) return respond(locations);
+      if (options.method === 'POST') return respond({ id: 3 });
+      return respond(motorcycles, { page: 1, limit: 9, total: 2, totalPages: 1 });
+    });
+    const user = userEvent.setup();
+
+    renderPage('/motor?baru=1');
+
+    expect(await screen.findByRole('dialog', { name: 'Tambah motor' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Plat nomor'), 'BB 9999 ZZ');
+    await user.type(screen.getByLabelText('Merek'), 'Honda');
+    await user.type(screen.getByLabelText('Model'), 'Scoopy');
+    await user.type(screen.getByLabelText('Kapasitas mesin (cc)'), '110');
+    await user.clear(screen.getByLabelText('Tahun'));
+    await user.type(screen.getByLabelText('Tahun'), '2024');
+    await user.type(screen.getByLabelText('Tarif per hari (Rp)'), '90000');
+    await user.selectOptions(screen.getByLabelText('Lokasi penyimpanan'), '1');
+    await user.click(screen.getByRole('button', { name: 'Simpan motor' }));
+
+    expect(await screen.findByText('Motor baru berhasil ditambahkan')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'POST')).toBe(true);
+  });
+
+  test('shows a notification when deleting a motorcycle fails', async () => {
+    mockFetch((url, options) => {
+      if (url.includes('/locations')) return respond(locations);
+      if (options.method === 'DELETE') return Promise.reject(new TypeError('offline'));
+      return respond(motorcycles, { page: 1, limit: 9, total: 2, totalPages: 1 });
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Hapus Honda Beat' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Hapus motor' }));
+
+    expect(await screen.findByText(/Server tidak dapat dihubungi/)).toBeInTheDocument();
+  });
+
+  test('shows rented motorcycles without a color and applies a valid availability range', async () => {
+    const rented = { ...motorcycles[0], rented_now: true, color: '' };
+    const fetchSpy = mockFetch((url) => url.includes('/locations')
+      ? respond(locations)
+      : respond([rented], { page: 1, limit: 9, total: 1, totalPages: 1 }));
+    const user = userEvent.setup();
+
+    renderPage();
+    const card = (await screen.findByText('Sedang disewa')).closest('li');
+    expect(within(card).getByText('Matic')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Kosong dari/), '2026-10-25');
+    await user.type(screen.getByLabelText(/sampai/), '2026-10-26');
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('available_from=2026-10-25'),
+      expect.anything(),
+    ));
+  });
+
+  test('moves to the previous page after deleting its only motorcycle', async () => {
+    const requestedPages = [];
+    const fetchSpy = mockFetch((url, options) => {
+      if (url.includes('/locations')) return respond(locations);
+      if (options.method === 'DELETE') return respond(null, { page: 1, limit: 9, total: 9, totalPages: 1 });
+      const page = new URL(url, 'http://localhost').searchParams.get('page') || '1';
+      requestedPages.push(page);
+      return respond([motorcycles[0]], { page: Number(page), limit: 9, total: 10, totalPages: 2 });
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findByText('Honda Beat');
+    await user.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    await waitFor(() => expect(requestedPages.at(-1)).toBe('2'));
+    await user.click(await screen.findByRole('button', { name: 'Hapus Honda Beat' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Hapus motor' }));
+
+    await waitFor(() => expect(requestedPages.at(-1)).toBe('1'));
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'DELETE')).toBe(true);
+  });
+
+  test('saves edits for a motorcycle whose optional color is empty', async () => {
+    const motorWithoutColor = { ...motorcycles[0], color: null };
+    const fetchSpy = mockFetch((url, options) => {
+      if (url.includes('/locations')) return respond(locations);
+      if (options.method === 'PUT') return respond(motorWithoutColor);
+      return respond([motorWithoutColor], { page: 1, limit: 9, total: 1, totalPages: 1 });
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ubah Honda Beat' }));
+    expect(screen.getByLabelText('Warna')).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: 'Simpan motor' }));
+
+    expect(await screen.findByText('Data motor berhasil diperbarui')).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.some(([, options]) => options.method === 'PUT')).toBe(true);
+  });
+
+  test('shows a general error when saving a motorcycle fails without field details', async () => {
+    mockFetch((url, options) => options.method === 'POST'
+      ? Promise.reject(new TypeError('offline'))
+      : respond(locations));
+    const user = userEvent.setup();
+
+    render(<FeedbackProvider><MotorForm motor={null} locations={locations} onClose={() => {}} onSaved={() => {}} /></FeedbackProvider>);
+    await user.type(screen.getByLabelText('Plat nomor'), 'BB 9999 ZZ');
+    await user.type(screen.getByLabelText('Merek'), 'Honda');
+    await user.type(screen.getByLabelText('Model'), 'Scoopy');
+    await user.type(screen.getByLabelText('Kapasitas mesin (cc)'), '110');
+    await user.type(screen.getByLabelText('Tarif per hari (Rp)'), '90000');
+    await user.selectOptions(screen.getByLabelText('Lokasi penyimpanan'), '1');
+    await user.click(screen.getByRole('button', { name: 'Simpan motor' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server tidak dapat dihubungi');
   });
 });

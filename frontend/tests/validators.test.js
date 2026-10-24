@@ -1,4 +1,4 @@
-import { validateMotor, validateCustomer, validateRental, isValidEmail } from '../src/lib/validators';
+import { validateMotor, validateCustomer, validateRental, isValidEmail, minEndDate } from '../src/lib/validators';
 
 const motor = { plate: 'BB 1234 AB', brand: 'Honda', model: 'Beat', type: 'matic', engine_cc: 110, year: 2023, price_per_day: 80000, location_id: 1 };
 
@@ -12,6 +12,13 @@ describe('validateMotor', () => {
     expect(validateMotor({ ...motor, plate: '###' }).plate).toMatch(/tidak valid/);
     expect(validateMotor({ ...motor, price_per_day: 5000 }).price_per_day).toMatch(/minimal/);
     expect(validateMotor({ ...motor, year: 1990 }).year).toBeDefined();
+  });
+  test('rejects out-of-range engine, future years, and excessive rates', () => {
+    expect(validateMotor({ ...motor, engine_cc: 49 }).engine_cc).toMatch(/50-1000/);
+    expect(validateMotor({ ...motor, engine_cc: 1001 }).engine_cc).toMatch(/50-1000/);
+    expect(validateMotor({ ...motor, engine_cc: 110.5 }).engine_cc).toMatch(/50-1000/);
+    expect(validateMotor({ ...motor, year: new Date().getFullYear() + 2 }).year).toBeDefined();
+    expect(validateMotor({ ...motor, price_per_day: 2000001 }).price_per_day).toMatch(/maksimal/);
   });
 });
 
@@ -33,6 +40,12 @@ describe('isValidEmail', () => {
     expect(isValidEmail('budi@example..co.id')).toBe(false);
     expect(isValidEmail(`${'a'.repeat(65)}@example.com`)).toBe(false);
     expect(isValidEmail(`${'a'.repeat(50000)}@example.com`)).toBe(false);
+    expect(isValidEmail('naïve@example.com')).toBe(false);
+    expect(isValidEmail('user@exämple.com')).toBe(false);
+    expect(isValidEmail('user@-example.com')).toBe(false);
+    expect(isValidEmail('user@example-.com')).toBe(false);
+    expect(isValidEmail('user@example.c')).toBe(false);
+    expect(isValidEmail('user@@example.com')).toBe(false);
   });
 });
 
@@ -49,5 +62,13 @@ describe('validateRental', () => {
   test('mode ubah mengizinkan tanggal mulai asli yang sudah lewat', () => {
     const v = { ...r, start_date: '2026-10-20', end_date: '2026-10-23' };
     expect(validateRental(v, '2026-10-21', { isEdit: true, originalStart: '2026-10-20' })).toEqual({});
+  });
+  test('requires both rental dates and exposes the minimum return date', () => {
+    expect(validateRental({ ...r, start_date: '', end_date: '' }, '2026-10-21')).toMatchObject({
+      start_date: 'Tanggal mulai wajib diisi',
+      end_date: 'Tanggal kembali wajib diisi',
+    });
+    expect(minEndDate('2026-10-21')).toBe('2026-10-22');
+    expect(minEndDate('')).toBeUndefined();
   });
 });
