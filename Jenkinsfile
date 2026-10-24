@@ -166,7 +166,10 @@ pipeline {
 
                         echo "=== SonarQube Analysis ==="
 
-                        sonar-scanner
+                        cd frontend
+                        sonar-scanner \
+                            -Dproject.settings=../sonar-project.properties \
+                            -Dsonar.tests=tests
 
                         echo "=== SonarQube Analysis Completed ==="
                     '''
