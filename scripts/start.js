@@ -3,11 +3,24 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { spawnSync } from 'node:child_process';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Muat .env (platform hosting menulis PORT dan API_URL di sini). Node tidak memuatnya otomatis; nilai env yang sudah ada tidak ditimpa.
+const envFile = join(root, '.env');
+if (existsSync(envFile)) {
+  for (const line of readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([\w.-]+)\s*=\s*(.*?)\s*$/);
+    if (!m || m[1].startsWith('#')) continue;
+    let value = m[2];
+    if (/^(["']).*\1$/.test(value)) value = value.slice(1, -1);
+    else value = value.replace(/\s+#.*$/, '');
+    if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+}
 const dist = join(root, 'dist');
 const port = Number(process.env.PORT || process.env.APP_PORT) || 4000;
 const apiUrl = (process.env.API_URL || '').replace(/\/$/, '');
