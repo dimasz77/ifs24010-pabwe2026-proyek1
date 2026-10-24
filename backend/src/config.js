@@ -22,7 +22,7 @@ const DB_PATH = path.resolve(__dirname, '..', process.env.DB_PATH || './data/ren
 
 module.exports = {
   env: process.env.NODE_ENV || 'development',
-  port: Number(process.env.PORT) || 4000,
+  port: Number(process.env.PORT || process.env.APP_PORT) || 4000,
   dbPath: DB_PATH,
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173')
     .split(',')
