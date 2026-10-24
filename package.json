@@ -4,10 +4,8 @@
   "private": true,
   "description": "Jenika Rental - aplikasi web pengelolaan rental motor di Samosir (Express + SQLite + React)",
   "workspaces": [
-    "backend",
     "frontend"
   ],
-  "trustedDependencies": [],
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
@@ -17,6 +15,12 @@
     "smoke": "node scripts/smoke.mjs http://localhost:4000",
     "postinstall": "node scripts/postinstall.js",
     "start": "node scripts/start.js"
+  },
+  "dependencies": {
+    "body-parser": "^2.4.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.5"
