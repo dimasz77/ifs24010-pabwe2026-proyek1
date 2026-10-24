@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+// Baca .env di backend/ lalu di root repository (platform hosting sering menaruhnya di root); nilai yang sudah ada tidak ditimpa
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const bool = (v, d = false) => (v === undefined ? d : String(v).toLowerCase() === 'true');
 
