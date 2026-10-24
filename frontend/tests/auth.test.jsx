@@ -1,12 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from '../src/context/AuthContext';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { api, getToken, setToken } from '../src/lib/api';
 import Login from '../src/pages/Login';
 import Register, { validateRegister } from '../src/pages/Register';
 
 const json = (status, body) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
+function AuthState() {
+  const { user, ready } = useAuth();
+  return <p>{ready ? (user ? `SESSION:${user.name}` : 'SESSION:EMPTY') : 'SESSION:LOADING'}</p>;
+}
+
 const wrap = (ui, path = '/auth/login') => render(
   <MemoryRouter initialEntries={[path]}>
     <AuthProvider>
@@ -127,5 +132,58 @@ describe('api client + token', () => {
     expect(getToken()).toBeNull();
     expect(handler).toHaveBeenCalled();
     window.removeEventListener('auth:expired', handler);
+  });
+});
+
+describe('AuthProvider session recovery', () => {
+  test('restores the current user from a saved token', async () => {
+    setToken('saved-token');
+    const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(200, {
+      success: true,
+      data: { id: 8, name: 'Dimas', token: 'saved-token' },
+    }));
+
+    render(
+      <MemoryRouter>
+        <AuthProvider><AuthState /></AuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('SESSION:Dimas')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('/auth/me'), expect.any(Object));
+  });
+
+  test('retains the saved token if session recovery fails without a 401', async () => {
+    setToken('saved-token');
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(500, {
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Server error' },
+    }));
+
+    render(
+      <MemoryRouter>
+        <AuthProvider><AuthState /></AuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('SESSION:EMPTY')).toBeInTheDocument();
+    expect(getToken()).toBe('saved-token');
+  });
+
+  test('clears an expired token when session recovery returns 401', async () => {
+    setToken('expired-token');
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, {
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Sesi berakhir' },
+    }));
+
+    render(
+      <MemoryRouter>
+        <AuthProvider><AuthState /></AuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('SESSION:EMPTY')).toBeInTheDocument();
+    expect(getToken()).toBeNull();
   });
 });
