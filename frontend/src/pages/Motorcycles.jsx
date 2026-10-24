@@ -9,6 +9,12 @@ import { PageHeader, Spinner, ErrorState, EmptyState, Pagination, SearchBox, Bad
 import { useConfirm, useToast } from '../components/Feedback';
 import MotorForm from './MotorForm';
 
+function motorAvailability(motor) {
+  if (motor.status === 'perawatan') return <Badge tone="warn"><Wrench size={12} /> Perawatan</Badge>;
+  if (motor.rented_now) return <Badge tone="brand">Sedang disewa</Badge>;
+  return <Badge tone="ok">Tersedia</Badge>;
+}
+
 export default function Motorcycles() {
   const confirm = useConfirm();
   const toast = useToast();
@@ -43,12 +49,59 @@ export default function Motorcycles() {
       title: 'Hapus motor?', tone: 'danger', confirmText: 'Hapus motor',
       message: `${m.brand} ${m.model} (${m.plate}) akan dihapus permanen dari armada.`,
     });
-    if (!ok) return;
-    try {
-      await api.del(`/motorcycles/${m.id}`);
-      toast.success('Motor berhasil dihapus');
-      if (data.length === 1 && page > 1) setPage(page - 1); else reload();
-    } catch (err) { toast.error(err.message); }
+    if (ok) {
+      try {
+        await api.del(`/motorcycles/${m.id}`);
+        toast.success('Motor berhasil dihapus');
+        if (data.length === 1 && page > 1) setPage(page - 1); else reload();
+      } catch (err) { toast.error(err.message); }
+    }
+  }
+
+  let motorcycleContent;
+  if (loading && !data) {
+    motorcycleContent = <Spinner />;
+  } else if (error && !data) {
+    motorcycleContent = <ErrorState error={error} onRetry={reload} />;
+  } else if (data.length === 0) {
+    const emptyTitle = hasFilter ? 'Tidak ada motor yang cocok' : 'Belum ada motor';
+    const emptyText = hasFilter
+      ? 'Ubah atau hapus filter untuk melihat lebih banyak unit.'
+      : 'Tambahkan motor pertama untuk mulai menerima penyewaan.';
+    let emptyAction = <button className="btn btn-primary" onClick={() => setForm({ motor: null })}>Tambah motor</button>;
+    if (hasFilter) emptyAction = <button className="btn btn-ghost" onClick={reset}>Hapus filter</button>;
+    motorcycleContent = <EmptyState title={emptyTitle} text={emptyText} action={emptyAction} />;
+  } else {
+    motorcycleContent = (
+      <>
+        <ul className={`motor-grid ${loading ? 'is-loading' : ''}`}>
+          {data.map((m) => (
+            <li key={m.id} className={`motor-card type-${m.type}`}>
+              <div className="motor-top">
+                <span className="plate" aria-label={`Plat nomor ${m.plate}`}>{m.plate}</span>
+                {motorAvailability(m)}
+              </div>
+              <h3>{m.brand} {m.model}</h3>
+              <p className="motor-meta">
+                <span><Gauge size={14} /> {m.engine_cc} cc</span>
+                <span><Calendar size={14} /> {m.year}</span>
+                <span>{typeLabel(m.type)}{m.color ? `, ${m.color}` : ''}</span>
+              </p>
+              <p className="motor-loc"><MapPin size={14} /> {m.location_name}</p>
+              <div className="motor-bottom">
+                <p className="price">{rupiah(m.price_per_day)}<small> / hari</small></p>
+                <div className="row-actions">
+                  {m.status === 'tersedia' && <Link className="btn btn-primary btn-sm" to={`/sewa/baru?motor=${m.id}`}>Sewakan</Link>}
+                  <button className="icon-btn" aria-label={`Ubah ${m.brand} ${m.model}`} onClick={() => setForm({ motor: m })}><Pencil size={18} /></button>
+                  <button className="icon-btn icon-danger" aria-label={`Hapus ${m.brand} ${m.model}`} onClick={() => remove(m)}><Trash2 size={18} /></button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <Pagination meta={meta} onPage={setPage} />
+      </>
+    );
   }
 
   return (
@@ -88,43 +141,7 @@ export default function Motorcycles() {
         <p className="field-error">Tanggal akhir harus setelah tanggal awal agar filter ketersediaan berlaku.</p>
       )}
 
-      {loading && !data ? <Spinner /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : data.length === 0 ? (
-        <EmptyState
-          title={hasFilter ? 'Tidak ada motor yang cocok' : 'Belum ada motor'}
-          text={hasFilter ? 'Ubah atau hapus filter untuk melihat lebih banyak unit.' : 'Tambahkan motor pertama untuk mulai menerima penyewaan.'}
-          action={hasFilter ? <button className="btn btn-ghost" onClick={reset}>Hapus filter</button> : <button className="btn btn-primary" onClick={() => setForm({ motor: null })}>Tambah motor</button>}
-        />
-      ) : (
-        <>
-          <ul className={`motor-grid ${loading ? 'is-loading' : ''}`}>
-            {data.map((m) => (
-              <li key={m.id} className={`motor-card type-${m.type}`}>
-                <div className="motor-top">
-                  <span className="plate" aria-label={`Plat nomor ${m.plate}`}>{m.plate}</span>
-                  {m.status === 'perawatan' ? <Badge tone="warn"><Wrench size={12} /> Perawatan</Badge>
-                    : m.rented_now ? <Badge tone="brand">Sedang disewa</Badge> : <Badge tone="ok">Tersedia</Badge>}
-                </div>
-                <h3>{m.brand} {m.model}</h3>
-                <p className="motor-meta">
-                  <span><Gauge size={14} /> {m.engine_cc} cc</span>
-                  <span><Calendar size={14} /> {m.year}</span>
-                  <span>{typeLabel(m.type)}{m.color ? `, ${m.color}` : ''}</span>
-                </p>
-                <p className="motor-loc"><MapPin size={14} /> {m.location_name}</p>
-                <div className="motor-bottom">
-                  <p className="price">{rupiah(m.price_per_day)}<small> / hari</small></p>
-                  <div className="row-actions">
-                    {m.status === 'tersedia' && <Link className="btn btn-primary btn-sm" to={`/sewa/baru?motor=${m.id}`}>Sewakan</Link>}
-                    <button className="icon-btn" aria-label={`Ubah ${m.brand} ${m.model}`} onClick={() => setForm({ motor: m })}><Pencil size={18} /></button>
-                    <button className="icon-btn icon-danger" aria-label={`Hapus ${m.brand} ${m.model}`} onClick={() => remove(m)}><Trash2 size={18} /></button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <Pagination meta={meta} onPage={setPage} />
-        </>
-      )}
+      {motorcycleContent}
 
       {form && locs.data && (
         <MotorForm motor={form.motor} locations={locs.data} onClose={() => setForm(null)}

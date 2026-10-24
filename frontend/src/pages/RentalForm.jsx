@@ -97,10 +97,18 @@ export default function RentalForm() {
   if ((customers.loading && !customers.data) || (locs.loading && !locs.data)) return <Spinner />;
 
   const noCustomers = (customers.data || []).length === 0;
+  let submitLabel = 'Buat pesanan';
+  if (isEdit) submitLabel = 'Simpan perubahan';
+  if (saving) submitLabel = 'Menyimpan...';
+  const pageTitle = isEdit ? 'Ubah pesanan' : 'Buat sewa baru';
+  const pageSubtitle = isEdit ? existing.data?.code : 'Pilih motor, pelanggan, dan tanggal sewa';
+  let quoteMessage = 'Isi tanggal sewa yang valid untuk melihat total biaya.';
+  if (rangeOk) quoteMessage = 'Pilih motor untuk melihat total biaya.';
+  if (quote.error) quoteMessage = quote.error;
 
   return (
     <>
-      <PageHeader title={isEdit ? 'Ubah pesanan' : 'Buat sewa baru'} subtitle={isEdit ? existing.data?.code : 'Pilih motor, pelanggan, dan tanggal sewa'} />
+      <PageHeader title={pageTitle} subtitle={pageSubtitle} />
       <form className="rental-layout" onSubmit={submit} noValidate>
         <div className="panel">
           <div className="form-grid">
@@ -156,12 +164,12 @@ export default function RentalForm() {
               <div className="total"><dt>Total</dt><dd>{rupiah(quote.data.total_price)}</dd></div>
             </dl>
           ) : (
-            <p className="muted">{quote.error || (rangeOk ? 'Pilih motor untuk melihat total biaya.' : 'Isi tanggal sewa yang valid untuk melihat total biaya.')}</p>
+            <p className="muted">{quoteMessage}</p>
           )}
           <p className="field-hint">Diskon 10% mulai 7 hari dan 15% mulai 14 hari. Keterlambatan dikenai denda per hari.</p>
           {v.start_date && v.end_date && rangeOk && <p className="muted">{formatDate(v.start_date)} s/d {formatDate(v.end_date)}</p>}
           {formError && <p className="form-error" role="alert">{formError}</p>}
-          <button className="btn btn-primary btn-block" disabled={saving}>{saving ? 'Menyimpan...' : isEdit ? 'Simpan perubahan' : 'Buat pesanan'}</button>
+          <button className="btn btn-primary btn-block" disabled={saving}>{submitLabel}</button>
           <Link to="/sewa" className="btn btn-ghost btn-block">Batal</Link>
         </aside>
       </form>

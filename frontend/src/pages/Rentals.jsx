@@ -82,12 +82,18 @@ export default function Rentals() {
   const [returning, setReturning] = useState(null);
   const dq = useDebounce(q);
 
-  const query = { q: dq, page, limit: 10, ...(tab === 'overdue' ? { overdue: 'true' } : tab !== 'all' ? { status: tab } : {}) };
+  let filters = {};
+  if (tab === 'overdue') filters = { overdue: 'true' };
+  else if (tab !== 'all') filters = { status: tab };
+  const query = { q: dq, page, limit: 10, ...filters };
   const { data, meta, loading, error, reload } = useAsync(() => api.get('/rentals', query), [JSON.stringify(query)]);
 
   const setTab = (key) => {
     setPage(1);
-    setParams(key === 'all' ? {} : key === 'overdue' ? { overdue: 'true' } : { status: key });
+    let nextParams = {};
+    if (key === 'overdue') nextParams = { overdue: 'true' };
+    else if (key !== 'all') nextParams = { status: key };
+    setParams(nextParams);
   };
 
   async function act(r, action) {
@@ -96,22 +102,82 @@ export default function Rentals() {
       cancel: { title: 'Batalkan pesanan?', message: `Pesanan ${r.code} akan dibatalkan dan motor kembali tersedia untuk tanggal tersebut.`, confirmText: 'Batalkan pesanan', tone: 'danger', done: 'Pesanan dibatalkan' },
     }[action];
     const confirmed = await confirm(text);
-    if (!confirmed) return;
-    try {
-      await api.patch(`/rentals/${r.id}/status`, { action });
-      toast.success(text.done);
-      reload();
-    } catch (err) { toast.error(err.message); }
+    if (confirmed) {
+      try {
+        await api.patch(`/rentals/${r.id}/status`, { action });
+        toast.success(text.done);
+        reload();
+      } catch (err) { toast.error(err.message); }
+    }
   }
 
   async function remove(r) {
     const ok = await confirm({ title: 'Hapus data sewa?', tone: 'danger', confirmText: 'Hapus data', message: `Data sewa ${r.code} akan dihapus permanen dan tidak dapat dikembalikan.` });
-    if (!ok) return;
-    try {
-      await api.del(`/rentals/${r.id}`);
-      toast.success('Data sewa dihapus');
-      if (data.length === 1 && page > 1) setPage(page - 1); else reload();
-    } catch (err) { toast.error(err.message); }
+    if (ok) {
+      try {
+        await api.del(`/rentals/${r.id}`);
+        toast.success('Data sewa dihapus');
+        if (data.length === 1 && page > 1) setPage(page - 1); else reload();
+      } catch (err) { toast.error(err.message); }
+    }
+  }
+
+  let rentalsContent;
+  if (loading && !data) {
+    rentalsContent = <Spinner />;
+  } else if (error && !data) {
+    rentalsContent = <ErrorState error={error} onRetry={reload} />;
+  } else if (data.length === 0) {
+    const hasSearchOrFilter = Boolean(q) || tab !== 'all';
+    const emptyText = hasSearchOrFilter
+      ? 'Tidak ada sewa yang cocok dengan filter ini.'
+      : 'Buat penyewaan pertama untuk memulai.';
+    rentalsContent = (
+      <EmptyState
+        title="Tidak ada data sewa"
+        text={emptyText}
+        action={<Link to="/sewa/baru" className="btn btn-primary">Buat sewa baru</Link>}
+      />
+    );
+  } else {
+    rentalsContent = (
+      <>
+        <div className="table-wrap">
+          <table className="table responsive">
+            <thead><tr><th>Kode</th><th>Motor</th><th>Pelanggan</th><th>Periode</th><th>Total</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
+            <tbody>
+              {data.map((r) => (
+                <tr key={r.id}>
+                  <td data-label="Kode"><strong>{r.code}</strong></td>
+                  <td data-label="Motor">{r.motorcycle_name}<div className="muted">{r.motorcycle_plate}</div></td>
+                  <td data-label="Pelanggan">{r.customer_name}<div className="muted">{r.pickup_location_name}</div></td>
+                  <td data-label="Periode">{formatDate(r.start_date)} s/d {formatDate(r.end_date)}<div className="muted">{r.days} hari{r.returned_date ? `, kembali ${formatDate(r.returned_date)}` : ''}</div></td>
+                  <td data-label="Total">{rupiah(r.grand_total)}{r.late_fee > 0 && <div className="muted">termasuk denda {rupiah(r.late_fee)}</div>}</td>
+                  <td data-label="Status">
+                    <Badge tone={RENTAL_STATUS[r.status].tone}>{RENTAL_STATUS[r.status].label}</Badge>
+                    {r.is_overdue && <Badge tone="danger">Terlambat</Badge>}
+                  </td>
+                  <td className="cell-actions">
+                    {r.status === 'dipesan' && (<>
+                      <button className="btn btn-primary btn-sm" onClick={() => act(r, 'start')}><Play size={14} /> Mulai</button>
+                      <Link className="icon-btn" aria-label={`Ubah ${r.code}`} to={`/sewa/${r.id}/ubah`}><Pencil size={18} /></Link>
+                      <button className="icon-btn" aria-label={`Batalkan ${r.code}`} onClick={() => act(r, 'cancel')}><Ban size={18} /></button>
+                    </>)}
+                    {r.status === 'berjalan' && (
+                      <button className="btn btn-primary btn-sm" onClick={() => setReturning(r)}><Undo2 size={14} /> Kembalikan</button>
+                    )}
+                    {r.status !== 'berjalan' && (
+                      <button className="icon-btn icon-danger" aria-label={`Hapus ${r.code}`} onClick={() => remove(r)}><Trash2 size={18} /></button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Pagination meta={meta} onPage={setPage} />
+      </>
+    );
   }
 
   return (
@@ -129,47 +195,7 @@ export default function Rentals() {
         <SearchBox value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari kode, pelanggan, atau motor" />
       </section>
 
-      {loading && !data ? <Spinner /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : data.length === 0 ? (
-        <EmptyState title="Tidak ada data sewa" text={q || tab !== 'all' ? 'Tidak ada sewa yang cocok dengan filter ini.' : 'Buat penyewaan pertama untuk memulai.'}
-          action={<Link to="/sewa/baru" className="btn btn-primary">Buat sewa baru</Link>} />
-      ) : (
-        <>
-          <div className="table-wrap">
-            <table className="table responsive">
-              <thead><tr><th>Kode</th><th>Motor</th><th>Pelanggan</th><th>Periode</th><th>Total</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
-              <tbody>
-                {data.map((r) => (
-                  <tr key={r.id}>
-                    <td data-label="Kode"><strong>{r.code}</strong></td>
-                    <td data-label="Motor">{r.motorcycle_name}<div className="muted">{r.motorcycle_plate}</div></td>
-                    <td data-label="Pelanggan">{r.customer_name}<div className="muted">{r.pickup_location_name}</div></td>
-                    <td data-label="Periode">{formatDate(r.start_date)} s/d {formatDate(r.end_date)}<div className="muted">{r.days} hari{r.returned_date ? `, kembali ${formatDate(r.returned_date)}` : ''}</div></td>
-                    <td data-label="Total">{rupiah(r.grand_total)}{r.late_fee > 0 && <div className="muted">termasuk denda {rupiah(r.late_fee)}</div>}</td>
-                    <td data-label="Status">
-                      <Badge tone={RENTAL_STATUS[r.status].tone}>{RENTAL_STATUS[r.status].label}</Badge>
-                      {r.is_overdue && <Badge tone="danger">Terlambat</Badge>}
-                    </td>
-                    <td className="cell-actions">
-                      {r.status === 'dipesan' && (<>
-                        <button className="btn btn-primary btn-sm" onClick={() => act(r, 'start')}><Play size={14} /> Mulai</button>
-                        <Link className="icon-btn" aria-label={`Ubah ${r.code}`} to={`/sewa/${r.id}/ubah`}><Pencil size={18} /></Link>
-                        <button className="icon-btn" aria-label={`Batalkan ${r.code}`} onClick={() => act(r, 'cancel')}><Ban size={18} /></button>
-                      </>)}
-                      {r.status === 'berjalan' && (
-                        <button className="btn btn-primary btn-sm" onClick={() => setReturning(r)}><Undo2 size={14} /> Kembalikan</button>
-                      )}
-                      {r.status !== 'berjalan' && (
-                        <button className="icon-btn icon-danger" aria-label={`Hapus ${r.code}`} onClick={() => remove(r)}><Trash2 size={18} /></button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination meta={meta} onPage={setPage} />
-        </>
-      )}
+      {rentalsContent}
       {returning && <ReturnDialog rental={returning} onClose={() => setReturning(null)} onDone={() => { setReturning(null); reload(); }} />}
     </>
   );

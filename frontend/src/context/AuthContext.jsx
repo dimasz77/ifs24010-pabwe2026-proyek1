@@ -1,10 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { api, getToken, setToken } from '../lib/api';
+import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
 
 export function AuthProvider({ children }) {
+  validateComponentProps(AuthProvider, { children });
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(() => !getToken());
 
@@ -40,3 +43,7 @@ export function AuthProvider({ children }) {
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
+
+AuthProvider.propTypes = {
+  children: ReactNodePropType.isRequired,
+};

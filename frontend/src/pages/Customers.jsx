@@ -102,12 +102,56 @@ export default function Customers() {
       title: 'Hapus pelanggan?', tone: 'danger', confirmText: 'Hapus pelanggan',
       message: `Data ${c.full_name} akan dihapus permanen.`,
     });
-    if (!ok) return;
-    try {
-      await api.del(`/customers/${c.id}`);
-      toast.success('Pelanggan berhasil dihapus');
-      if (data.length === 1 && page > 1) setPage(page - 1); else reload();
-    } catch (err) { toast.error(err.message); }
+    if (ok) {
+      try {
+        await api.del(`/customers/${c.id}`);
+        toast.success('Pelanggan berhasil dihapus');
+        if (data.length === 1 && page > 1) setPage(page - 1); else reload();
+      } catch (err) { toast.error(err.message); }
+    }
+  }
+
+  let customersContent;
+  if (loading && !data) {
+    customersContent = <Spinner />;
+  } else if (error && !data) {
+    customersContent = <ErrorState error={error} onRetry={reload} />;
+  } else if (data.length === 0) {
+    const isSearchEmpty = Boolean(q);
+    customersContent = (
+      <EmptyState
+        title={isSearchEmpty ? 'Pelanggan tidak ditemukan' : 'Belum ada pelanggan'}
+        text={isSearchEmpty ? 'Coba kata kunci lain.' : 'Tambahkan data penyewa sebelum membuat penyewaan.'}
+        action={!isSearchEmpty && <button className="btn btn-primary" onClick={() => setForm({ customer: null })}>Tambah pelanggan</button>}
+      />
+    );
+  } else {
+    customersContent = (
+      <>
+        <div className="table-wrap">
+          <table className="table responsive">
+            <thead><tr><th>Nama</th><th>Kontak</th><th>Identitas</th><th>Asal</th><th>Sewa</th><th><span className="sr-only">Aksi</span></th></tr></thead>
+            <tbody>
+              {data.map((c) => (
+                <tr key={c.id}>
+                  <td data-label="Nama"><strong>{c.full_name}</strong></td>
+                  <td data-label="Kontak"><Phone size={14} /> {c.phone}{c.email && <div className="muted">{c.email}</div>}</td>
+                  <td data-label="Identitas">{c.id_number}<div className="muted">SIM {c.sim_number}</div></td>
+                  <td data-label="Asal">{c.origin || '-'}</td>
+                  <td data-label="Sewa">{c.rental_count}x</td>
+                  <td className="cell-actions">
+                    <Link className="btn btn-ghost btn-sm" to={`/sewa/baru?pelanggan=${c.id}`}>Sewakan</Link>
+                    <button className="icon-btn" aria-label={`Ubah ${c.full_name}`} onClick={() => setForm({ customer: c })}><Pencil size={18} /></button>
+                    <button className="icon-btn icon-danger" aria-label={`Hapus ${c.full_name}`} onClick={() => remove(c)}><Trash2 size={18} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Pagination meta={meta} onPage={setPage} />
+      </>
+    );
   }
 
   return (
@@ -119,36 +163,7 @@ export default function Customers() {
         <SearchBox value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Cari nama, telepon, atau nomor identitas" />
       </section>
 
-      {loading && !data ? <Spinner /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : data.length === 0 ? (
-        <EmptyState title={q ? 'Pelanggan tidak ditemukan' : 'Belum ada pelanggan'}
-          text={q ? 'Coba kata kunci lain.' : 'Tambahkan data penyewa sebelum membuat penyewaan.'}
-          action={!q && <button className="btn btn-primary" onClick={() => setForm({ customer: null })}>Tambah pelanggan</button>} />
-      ) : (
-        <>
-          <div className="table-wrap">
-            <table className="table responsive">
-              <thead><tr><th>Nama</th><th>Kontak</th><th>Identitas</th><th>Asal</th><th>Sewa</th><th><span className="sr-only">Aksi</span></th></tr></thead>
-              <tbody>
-                {data.map((c) => (
-                  <tr key={c.id}>
-                    <td data-label="Nama"><strong>{c.full_name}</strong></td>
-                    <td data-label="Kontak"><Phone size={14} /> {c.phone}{c.email && <div className="muted">{c.email}</div>}</td>
-                    <td data-label="Identitas">{c.id_number}<div className="muted">SIM {c.sim_number}</div></td>
-                    <td data-label="Asal">{c.origin || '-'}</td>
-                    <td data-label="Sewa">{c.rental_count}x</td>
-                    <td className="cell-actions">
-                      <Link className="btn btn-ghost btn-sm" to={`/sewa/baru?pelanggan=${c.id}`}>Sewakan</Link>
-                      <button className="icon-btn" aria-label={`Ubah ${c.full_name}`} onClick={() => setForm({ customer: c })}><Pencil size={18} /></button>
-                      <button className="icon-btn icon-danger" aria-label={`Hapus ${c.full_name}`} onClick={() => remove(c)}><Trash2 size={18} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination meta={meta} onPage={setPage} />
-        </>
-      )}
+      {customersContent}
       {form && <CustomerForm customer={form.customer} onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); }} />}
     </>
   );

@@ -57,7 +57,7 @@ describe('UI components', () => {
     expect(screen.getByRole('heading', { name: 'Tanpa detail' })).toBeInTheDocument();
     expect(screen.getByText('Tersedia')).toHaveClass('badge-ok');
     expect(screen.getByText('Belum ada data.')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Memuat ringkasan...');
+    expect(screen.getByText('Memuat ringkasan...').closest('output')).toBeInTheDocument();
     expect(document.querySelector('.ulos-tall')).toBeInTheDocument();
   });
 

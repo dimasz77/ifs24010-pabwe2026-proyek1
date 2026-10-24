@@ -28,10 +28,10 @@ export const Badge = ({ tone = 'muted', children }) => {
 export function Spinner({ label = 'Memuat data...' }) {
   validateComponentProps(Spinner, { label });
   return (
-    <div className="state" role="status">
+    <output className="state">
       <div className="spinner" />
       <p className="muted">{label}</p>
-    </div>
+    </output>
   );
 }
 

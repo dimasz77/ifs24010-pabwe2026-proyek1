@@ -27,6 +27,11 @@ function buildUrl(path, params) {
   return `${BASE}${path}${query}`;
 }
 
+function shouldExpireSession(path) {
+  if (path.startsWith('/auth/login') || path.startsWith('/auth/register')) return false;
+  return true;
+}
+
 async function request(path, { method = 'GET', body, params, signal } = {}) {
   let res;
   try {
@@ -48,7 +53,7 @@ async function request(path, { method = 'GET', body, params, signal } = {}) {
   let json = null;
   try { json = await res.json(); } catch { /* respons bukan JSON */ }
 
-  if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
+  if (res.status === 401 && shouldExpireSession(path)) {
     setToken(null);
     globalThis.dispatchEvent(new Event('auth:expired'));
   }
