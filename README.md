@@ -43,17 +43,24 @@ BACKEND_DIR=../ifs24010-pabwe2026-proyek1-backend python e2e/e2e_test.py
 ## Build dan deploy
 ```bash
 npm run build             # hasil di dist/ (statis)
-npm run preview           # http://localhost:4173
+npm start                 # sajikan dist/ + teruskan /api ke backend (lihat di bawah)
 ```
-`dist/` dapat dihosting di server statis mana pun, **dengan fallback ke `index.html`** untuk semua rute (SPA). Contoh dengan Docker (nginx):
-```bash
-VITE_API_URL=https://api.contoh.app docker compose up -d --build   # http://localhost:8080
-```
+`npm install` otomatis menjalankan build (lewat `postinstall`, dilewati bila `CI` terdeteksi), lalu `npm start` menyajikan `dist/` dengan fallback SPA. Server ini tanpa dependency tambahan dan **meneruskan `/api/*` ke backend** sehingga browser hanya berbicara ke satu origin (tanpa CORS).
+
+| Variabel (runtime) | Keterangan |
+|---|---|
+| `API_URL` | Alamat backend yang di-deploy, mis. `https://api.contoh.app`. **Wajib** agar login/data berfungsi |
+| `PORT` | Port server (default 4000) |
+
+Alternatif: isi `VITE_API_URL` saat build agar browser memanggil backend langsung (backend harus mengizinkan origin ini di `CORS_ORIGINS`).
+
+Docker (nginx, tanpa `npm start`): `VITE_API_URL=https://api.contoh.app docker compose up -d --build` -> http://localhost:8080.
 
 ## Troubleshooting
 | Gejala | Solusi |
 |---|---|
-| "Server tidak dapat dihubungi" | Backend belum jalan / `VITE_PROXY_TARGET` salah; cek `curl localhost:4000/api/health` |
+| "Server tidak dapat dihubungi" | Dev: backend belum jalan / `VITE_PROXY_TARGET` salah. Produksi: `API_URL` belum diatur atau backend belum di-deploy |
+| 502 Bad Gateway dari nginx | Tidak ada proses yang berjalan. Pastikan `npm start` ada dan `npm install` selesai (build `dist/`) |
 | Error CORS setelah deploy | Tambahkan origin frontend ke `CORS_ORIGINS` di backend |
 | Request ke `/api` gagal setelah deploy, padahal backend hidup | `VITE_API_URL` kosong saat build; isi lalu build ulang (nilainya di-embed saat build) |
 | 404 saat refresh halaman di hosting | Aktifkan fallback SPA ke `index.html` |

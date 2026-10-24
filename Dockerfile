@@ -2,7 +2,7 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY . .
 # URL backend dipakai saat build (di-embed ke bundle). Kosongkan bila /api di-proxy oleh reverse proxy yang sama.
 ARG VITE_API_URL=
