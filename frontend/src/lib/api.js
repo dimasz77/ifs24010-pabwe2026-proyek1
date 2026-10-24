@@ -28,8 +28,7 @@ function buildUrl(path, params) {
 }
 
 function shouldExpireSession(path) {
-  if (path.startsWith('/auth/login') || path.startsWith('/auth/register')) return false;
-  return true;
+  return !path.startsWith('/auth/login') && !path.startsWith('/auth/register');
 }
 
 async function request(path, { method = 'GET', body, params, signal } = {}) {
