@@ -10,6 +10,11 @@
     "test": "npm --prefix backend test && npm --prefix frontend test",
     "build": "npm --prefix frontend run build",
     "start:prod": "npm run build && SERVE_FRONTEND=true npm --prefix backend start",
-    "smoke": "node scripts/smoke.mjs http://localhost:4000"
+    "smoke": "node scripts/smoke.mjs http://localhost:4000",
+    "postinstall": "npm --prefix backend install --ignore-scripts && npm --prefix frontend install --include=dev && npm --prefix frontend run build",
+    "start": "node scripts/start.js"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
