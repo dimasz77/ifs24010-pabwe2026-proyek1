@@ -25,12 +25,12 @@ check('GET /api/health = 200 dan database terhubung', health.status === 200 && h
 const noAuth = await call('GET', '/api/motorcycles');
 check('GET /api/motorcycles tanpa login = 401', noAuth.status === 401);
 
-const email = `smoke${Date.now()}@example.com`;
-const reg = await call('POST', '/api/auth/register', { name: 'Smoke Test', email, password: 'smoke-test-123' });
+const username = `smoke${Date.now()}`;
+const reg = await call('POST', '/api/auth/register', { name: 'Smoke Test', username, password: 'smoke-test-123' });
 check('POST /api/auth/register = 201 (atau 403 bila registrasi ditutup)', reg.status === 201 || reg.status === 403, JSON.stringify(reg.json));
-const login = reg.status === 201 ? reg : await call('POST', '/api/auth/login', { email: process.env.SMOKE_EMAIL, password: process.env.SMOKE_PASSWORD });
+const login = reg.status === 201 ? reg : await call('POST', '/api/auth/login', { username: process.env.SMOKE_USERNAME, password: process.env.SMOKE_PASSWORD });
 token = login.json?.data?.token || '';
-check('Memperoleh token login', Boolean(token), 'registrasi ditutup? set SMOKE_EMAIL dan SMOKE_PASSWORD');
+check('Memperoleh token login', Boolean(token), 'registrasi ditutup? set SMOKE_USERNAME dan SMOKE_PASSWORD');
 
 const dash = await call('GET', '/api/dashboard/summary');
 check('GET /api/dashboard/summary memuat armada', dash.status === 200 && dash.json?.data?.fleet?.total >= 0);

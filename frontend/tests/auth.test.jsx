@@ -7,12 +7,12 @@ import Login from '../src/pages/Login';
 import Register, { validateRegister } from '../src/pages/Register';
 
 const json = (status, body) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
-const wrap = (ui, path = '/masuk') => render(
+const wrap = (ui, path = '/auth/login') => render(
   <MemoryRouter initialEntries={[path]}>
     <AuthProvider>
       <Routes>
-        <Route path="/masuk" element={ui} />
-        <Route path="/daftar" element={ui} />
+        <Route path="/auth/login" element={ui} />
+        <Route path="/auth/register" element={ui} />
         <Route path="/" element={<p>BERANDA</p>} />
       </Routes>
     </AuthProvider>
@@ -24,33 +24,40 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('validateRegister', () => {
   test('aturan dasar', () => {
-    expect(validateRegister({ name: 'Dimas', email: 'd@x.id', password: 'abcdefgh', confirm: 'abcdefgh' })).toEqual({});
-    const e = validateRegister({ name: 'Di', email: 'x', password: '123', confirm: '456' });
-    expect(Object.keys(e)).toEqual(['name', 'email', 'password', 'confirm']);
+    expect(validateRegister({ name: 'Dimas', username: 'dimas_s', email: '', password: 'abcdef', confirm: 'abcdef' })).toEqual({});
+    const e = validateRegister({ name: 'Di', username: 'a b', email: 'x', password: '123', confirm: '456' });
+    expect(Object.keys(e)).toEqual(['name', 'username', 'email', 'password', 'confirm']);
   });
 });
 
 describe('Login', () => {
+  test('elemen yang dicari penguji otomatis ada: #username, #password, #btn-submit', async () => {
+    wrap(<Login />);
+    expect(document.querySelector('#username')).toBeTruthy();
+    expect(document.querySelector('#password')).toBeTruthy();
+    expect(document.querySelector('#btn-submit')).toBeTruthy();
+  });
+
   test('berhasil: menyimpan token dan pindah ke beranda', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(200, { success: true, data: { user: { id: 1, name: 'Dimas', email: 'd@x.id' }, token: 'tok123' } }));
     const user = userEvent.setup();
     wrap(<Login />);
-    await user.type(screen.getByLabelText('Email'), 'd@x.id');
+    await user.type(screen.getByLabelText('Username'), 'dimas');
     await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
     expect(await screen.findByText('BERANDA')).toBeInTheDocument();
     expect(getToken()).toBe('tok123');
-    expect(JSON.parse(spy.mock.calls[0][1].body)).toEqual({ email: 'd@x.id', password: 'rahasia123' });
+    expect(JSON.parse(spy.mock.calls[0][1].body)).toEqual({ username: 'dimas', password: 'rahasia123' });
   });
 
   test('gagal: menampilkan pesan dari server, tidak menyimpan token', async () => {
-    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, { success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Email atau kata sandi salah' } }));
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, { success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Username atau kata sandi salah' } }));
     const user = userEvent.setup();
     wrap(<Login />);
-    await user.type(screen.getByLabelText('Email'), 'd@x.id');
+    await user.type(screen.getByLabelText('Username'), 'dimas');
     await user.type(screen.getByLabelText('Kata sandi'), 'salah');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
-    expect(await screen.findByText('Email atau kata sandi salah')).toBeInTheDocument();
+    expect(await screen.findByText('Username atau kata sandi salah')).toBeInTheDocument();
     expect(getToken()).toBeNull();
   });
 
@@ -59,7 +66,7 @@ describe('Login', () => {
     const user = userEvent.setup();
     wrap(<Login />);
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
-    expect(await screen.findByText('Email wajib diisi')).toBeInTheDocument();
+    expect(await screen.findByText('Username wajib diisi')).toBeInTheDocument();
     expect(spy).not.toHaveBeenCalled();
   });
 });
@@ -68,9 +75,9 @@ describe('Register', () => {
   test('konfirmasi sandi berbeda ditolak di frontend', async () => {
     const spy = vi.spyOn(globalThis, 'fetch');
     const user = userEvent.setup();
-    wrap(<Register />, '/daftar');
+    wrap(<Register />, '/auth/register');
     await user.type(screen.getByLabelText('Nama lengkap'), 'Dimas Sidabutar');
-    await user.type(screen.getByLabelText('Email'), 'd@x.id');
+    await user.type(screen.getByLabelText('Username'), 'dimas');
     await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
     await user.type(screen.getByLabelText('Ulangi kata sandi'), 'beda12345');
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
@@ -78,16 +85,16 @@ describe('Register', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  test('email duplikat dari server tampil pada kolom email', async () => {
-    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(409, { success: false, error: { code: 'DUPLICATE', message: 'Email sudah terdaftar', details: { email: 'Email sudah terdaftar' } } }));
+  test('username duplikat dari server tampil pada kolom username', async () => {
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(json(409, { success: false, error: { code: 'DUPLICATE', message: 'Username sudah dipakai', details: { username: 'Username sudah dipakai' } } }));
     const user = userEvent.setup();
-    wrap(<Register />, '/daftar');
+    wrap(<Register />, '/auth/register');
     await user.type(screen.getByLabelText('Nama lengkap'), 'Dimas Sidabutar');
-    await user.type(screen.getByLabelText('Email'), 'd@x.id');
+    await user.type(screen.getByLabelText('Username'), 'dimas');
     await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
     await user.type(screen.getByLabelText('Ulangi kata sandi'), 'rahasia123');
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
-    expect(await screen.findByText('Email sudah terdaftar')).toBeInTheDocument();
+    expect(await screen.findByText('Username sudah dipakai')).toBeInTheDocument();
   });
 });
 

@@ -57,12 +57,17 @@ const statusRules = {
 
 const registerRules = {
   name: { type: 'string', label: 'Nama', required: true, min: 3, max: 80 },
-  email: { type: 'email', label: 'Email', required: true },
-  password: { type: 'string', label: 'Kata sandi', required: true, min: 8, max: 72 },
+  username: {
+    type: 'string', label: 'Username', required: true, min: 3, max: 30,
+    pattern: /^[A-Za-z0-9_.-]+$/, patternMessage: 'Username hanya boleh huruf, angka, titik, garis bawah, dan strip',
+  },
+  email: { type: 'email', label: 'Email', required: false },
+  password: { type: 'string', label: 'Kata sandi', required: true, min: 6, max: 72 },
 };
 
+// 'username' pada login boleh berisi username atau email
 const loginRules = {
-  email: { type: 'string', label: 'Email', required: true, max: 120 },
+  username: { type: 'string', label: 'Username', required: true, max: 120 },
   password: { type: 'string', label: 'Kata sandi', required: true, max: 72 },
 };
 

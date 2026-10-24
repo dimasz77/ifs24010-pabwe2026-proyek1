@@ -1,6 +1,7 @@
 const { HttpError } = require('../utils/httpError');
 
 const UNIQUE_MESSAGES = {
+  'users.username': ['username', 'Username sudah dipakai'],
   'users.email': ['email', 'Email sudah terdaftar'],
   'motorcycles.plate': ['plate', 'Plat nomor sudah terdaftar'],
   'customers.phone': ['phone', 'Nomor telepon sudah terdaftar'],

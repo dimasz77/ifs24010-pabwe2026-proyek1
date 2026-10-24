@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user,
     ready,
-    login: async (email, password) => finish(await api.post('/auth/login', { email, password })),
+    login: async (username, password) => finish(await api.post('/auth/login', { username, password })),
     register: async (payload) => finish(await api.post('/auth/register', payload)),
     logout: () => { setToken(null); setUser(null); },
   }), [user, ready, finish]);

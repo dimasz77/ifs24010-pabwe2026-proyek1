@@ -59,14 +59,23 @@ try:
         @step('0a. Halaman terproteksi mengarahkan ke /masuk saat belum login')
         def _():
             page.goto(BASE + '/motor')
-            expect(page).to_have_url(re.compile(r'/masuk$'))
+            expect(page).to_have_url(re.compile(r'/auth/login$'))
             expect(page.get_by_role('heading', name='Masuk')).to_be_visible()
+
+        @step('0a2. Selector penguji otomatis di /auth/login: #username, #password, #btn-submit')
+        def _():
+            page.goto(BASE + '/auth/login')
+            expect(page.locator('#username')).to_be_visible()
+            expect(page.locator('#password')).to_be_visible()
+            expect(page.locator('#btn-submit')).to_be_visible()
+            page.goto(BASE + '/masuk')
+            expect(page).to_have_url(re.compile(r'/auth/login$'))
 
         @step('0b. Registrasi lewat UI: validasi sandi tidak sama, lalu berhasil dan masuk ke beranda')
         def _():
-            page.goto(BASE + '/daftar')
+            page.goto(BASE + '/auth/register')
             page.get_by_label('Nama lengkap').fill('Dimas Tester')
-            page.get_by_label('Email', exact=True).fill('dimas.tester@example.com')
+            page.get_by_label('Username', exact=True).fill('dimas_tester')
             page.get_by_label('Kata sandi', exact=True).fill('rahasia123')
             page.get_by_label('Ulangi kata sandi').fill('beda12345')
             page.get_by_role('button', name='Daftar').click()
@@ -211,13 +220,13 @@ try:
         def _():
             page.goto(BASE + '/')
             page.get_by_role('button', name='Keluar').click()
-            expect(page).to_have_url(re.compile(r'/masuk$'))
-            page.get_by_label('Email').fill('dimas.tester@example.com')
+            expect(page).to_have_url(re.compile(r'/auth/login$'))
+            page.get_by_label('Username').fill('dimas_tester')
             page.get_by_label('Kata sandi').fill('salahsalah')
             page.get_by_role('button', name='Masuk').click()
-            expect(page.get_by_text('Email atau kata sandi salah')).to_be_visible()
-            page.get_by_label('Kata sandi').fill('rahasia123')
-            page.get_by_role('button', name='Masuk').click()
+            expect(page.get_by_text('Username atau kata sandi salah')).to_be_visible()
+            page.locator('#password').fill('rahasia123')
+            page.locator('#btn-submit').click()
             expect(page.get_by_role('heading', name='Horas! Ringkasan hari ini')).to_be_visible()
 
         @step('13. Backend mati: UI menampilkan pesan "Server tidak dapat dihubungi"')

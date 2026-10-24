@@ -16,7 +16,7 @@ function buildApp({ seed = true, file = ':memory:' } = {}) {
   if (seed) seedIfEmpty(db); else seedLocations(db);
   const cfg = { ...config };
   const app = createApp({ db, config: cfg });
-  const userId = userModel.insert(db, { name: 'Admin Test', email: 'admin@test.id', password_hash: hashPassword('rahasia123') });
+  const userId = userModel.insert(db, { name: 'Admin Test', username: 'admintest', email: 'admin@test.id', password_hash: hashPassword('rahasia123') });
   const token = signToken({ sub: userId }, cfg.jwtSecret, 3600);
   // api: otomatis membawa token login; raw: tanpa token (untuk menguji proteksi)
   const authed = (method) => (url) => request(app)[method](url).set('Authorization', `Bearer ${token}`);
