@@ -2,6 +2,7 @@
 // dan meneruskan /api/* ke backend yang di-host terpisah (env API_URL, mis. https://api.contoh.app).
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { spawnSync } from 'node:child_process';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const port = Number(process.env.PORT || process.env.APP_PORT) || 4000;
 const apiUrl = (process.env.API_URL || '').replace(/\/$/, '');
+
+// Bila dist/ belum ada (mis. postinstall dilewati), bangun sekarang supaya server tetap bisa melayani halaman.
+if (!existsSync(join(dist, 'index.html'))) {
+  const vite = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+  if (existsSync(vite)) {
+    console.log('[WEB] dist/ belum ada, membangun frontend...');
+    spawnSync(process.execPath, [vite, 'build'], { cwd: root, stdio: 'inherit' });
+  } else {
+    console.error('[WEB] dist/ belum ada dan vite tidak terpasang; halaman tidak dapat disajikan.');
+  }
+}
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',

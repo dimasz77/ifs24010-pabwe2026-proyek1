@@ -12,9 +12,11 @@ if (process.env.JENKINS_URL || process.env.CI) {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const vite = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+// Kegagalan build tidak boleh menggagalkan install; `npm start` akan mencoba membangun lagi dan melaporkan masalahnya.
 if (!existsSync(vite)) {
-  console.error('[postinstall] vite tidak ditemukan, build frontend gagal');
-  process.exit(1);
+  console.warn('[postinstall] vite tidak ditemukan, build dilewati (akan dicoba ulang saat npm start)');
+  process.exit(0);
 }
 const result = spawnSync(process.execPath, [vite, 'build'], { cwd: root, stdio: 'inherit' });
-process.exit(result.status === null ? 1 : result.status);
+if (result.status !== 0) console.warn('[postinstall] build frontend gagal (akan dicoba ulang saat npm start)');
+process.exit(0);
