@@ -2,7 +2,5 @@ node_modules
 dist
 coverage
 .env
-backend/data/*.db
-backend/data/*.db-*
 *.log
-backend/data/.jwt_secret
+__pycache__

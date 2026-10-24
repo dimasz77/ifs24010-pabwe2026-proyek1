@@ -1,9 +1,7 @@
-**/node_modules
-**/dist
-**/coverage
-**/.env
-backend/data
-.git
-e2e
+node_modules
+dist
+coverage
+.env
 docs
-*.md
+e2e
+.git

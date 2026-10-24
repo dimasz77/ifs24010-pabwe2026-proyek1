@@ -1,31 +1,49 @@
 """Uji integrasi end-to-end (UI -> Express -> SQLite) menggunakan Playwright.
 
 Prasyarat: pip install playwright && playwright install chromium
-Jalankan : python e2e/e2e_test.py   (dari root repo; frontend harus sudah di-build)
-Skrip menjalankan server sendiri pada port 4020 dengan database sementara.
+           repository backend sudah di-clone dan `npm ci` sudah dijalankan di sana
+Jalankan : BACKEND_DIR=../ifs24010-pabwe2026-proyek1-backend python e2e/e2e_test.py   (dari root repo frontend)
+Skrip menjalankan backend (port 4020, database sementara) dan `vite preview` frontend hasil build
+(port 4021, /api di-proxy ke backend). Jalankan `npm run build` lebih dulu.
 """
 import os, re, signal, subprocess, sys, tempfile, time, urllib.request
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright, expect
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORT = 4020
-BASE = f'http://localhost:{PORT}'
+PORT = 4020            # backend
+FRONT_PORT = 4021      # frontend (vite preview)
+API = f'http://localhost:{PORT}'
+BASE = f'http://localhost:{FRONT_PORT}'
+BACKEND_DIR = os.path.abspath(os.environ.get('BACKEND_DIR', os.path.join(ROOT, '..', 'ifs24010-pabwe2026-proyek1-backend')))
 DB = os.path.join(tempfile.mkdtemp(), 'e2e.db')
 SHOTS = os.environ.get('SHOTS_DIR', '')
 results = []
 
 
 def start_server():
-    env = {**os.environ, 'PORT': str(PORT), 'DB_PATH': DB, 'SERVE_FRONTEND': 'true', 'NODE_ENV': 'test', 'AUTO_SEED': 'true'}
-    proc = subprocess.Popen(['node', 'src/server.js'], cwd=os.path.join(ROOT, 'backend'), env=env,
+    env = {**os.environ, 'PORT': str(PORT), 'DB_PATH': DB, 'NODE_ENV': 'test', 'AUTO_SEED': 'true', 'CORS_ORIGINS': BASE}
+    proc = subprocess.Popen(['node', 'src/server.js'], cwd=BACKEND_DIR, env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(40):
         try:
-            urllib.request.urlopen(f'{BASE}/api/health', timeout=1); return proc
+            urllib.request.urlopen(f'{API}/api/health', timeout=1); return proc
         except Exception:
             time.sleep(0.25)
     raise RuntimeError('server tidak start')
+
+
+def start_frontend():
+    env = {**os.environ, 'VITE_PROXY_TARGET': API}
+    vite = os.path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js')
+    proc = subprocess.Popen(['node', vite, 'preview', '--port', str(FRONT_PORT), '--strictPort'], cwd=ROOT, env=env,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(40):
+        try:
+            urllib.request.urlopen(BASE + '/', timeout=1); return proc
+        except Exception:
+            time.sleep(0.25)
+    raise RuntimeError('frontend preview tidak start')
 
 
 def step(name):
@@ -48,6 +66,7 @@ def shot(page, name):
 
 
 server = start_server()
+front = start_frontend()
 today = date.today()
 try:
     with sync_playwright() as p:
@@ -240,8 +259,9 @@ try:
 
         browser.close()
 finally:
-    if server.poll() is None:
-        server.send_signal(signal.SIGTERM)
+    for proc in (server, front):
+        if proc.poll() is None:
+            proc.send_signal(signal.SIGTERM)
 
 failed = [r for r in results if not r[1]]
 print(f'\nRingkasan E2E: {len(results) - len(failed)}/{len(results)} langkah lulus')
