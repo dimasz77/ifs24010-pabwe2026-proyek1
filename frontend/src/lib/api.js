@@ -41,11 +41,12 @@ async function request(path, { method = 'GET', body, params, signal } = {}) {
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
+    const requestBody = body === undefined ? undefined : JSON.stringify(body);
     res = await fetch(buildUrl(path, params), {
       method,
       signal,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: requestBody,
     });
   } catch (err) {
     if (err.name === 'AbortError') throw err;
