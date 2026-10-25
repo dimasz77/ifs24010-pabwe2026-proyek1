@@ -1,9 +1,8 @@
 import { lazy, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { FeedbackProvider } from './components/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Spinner } from './components/ui';
+import { Spinner } from './components/critical-ui';
 import { ReactNodePropType, validateComponentProps } from './lib/validateComponentProps';
 import Login from './pages/Login';
 
@@ -46,25 +45,23 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <FeedbackProvider>
-          <Suspense fallback={<LoadingPage title="Memuat halaman" />}>
-            <Routes>
-              <Route path="auth/login" element={<Login />} />
-              <Route path="auth/register" element={<Register />} />
-              <Route path="masuk" element={<Navigate to="/auth/login" replace />} />
-              <Route path="daftar" element={<Navigate to="/auth/register" replace />} />
-              <Route element={<RequireAuth><Layout /></RequireAuth>}>
-                <Route index element={<Dashboard />} />
-                <Route path="motor" element={<Motorcycles />} />
-                <Route path="pelanggan" element={<Customers />} />
-                <Route path="sewa" element={<Rentals />} />
-                <Route path="sewa/baru" element={<RentalForm />} />
-                <Route path="sewa/:id/ubah" element={<RentalForm />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </FeedbackProvider>
+        <Suspense fallback={<LoadingPage title="Memuat halaman" />}>
+          <Routes>
+            <Route path="auth/login" element={<Login />} />
+            <Route path="auth/register" element={<Register />} />
+            <Route path="masuk" element={<Navigate to="/auth/login" replace />} />
+            <Route path="daftar" element={<Navigate to="/auth/register" replace />} />
+            <Route element={<RequireAuth><Layout /></RequireAuth>}>
+              <Route index element={<Dashboard />} />
+              <Route path="motor" element={<Motorcycles />} />
+              <Route path="pelanggan" element={<Customers />} />
+              <Route path="sewa" element={<Rentals />} />
+              <Route path="sewa/baru" element={<RentalForm />} />
+              <Route path="sewa/:id/ubah" element={<RentalForm />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

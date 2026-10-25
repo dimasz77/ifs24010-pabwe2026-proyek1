@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthShell from '../components/AuthShell';
-import { Field } from '../components/ui';
+import { Field } from '../components/critical-ui';
 
 export default function Login() {
   const { user, login } = useAuth();

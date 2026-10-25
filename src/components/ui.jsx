@@ -1,11 +1,9 @@
 import { WifiOff, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
+import { Field, Spinner, Ulos } from './critical-ui';
 
-export const Ulos = ({ tall = false }) => {
-  validateComponentProps(Ulos, { tall });
-  return <div className={tall ? 'ulos ulos-tall' : 'ulos'} aria-hidden="true" />;
-};
+export { Field, Spinner, Ulos };
 
 export function PageHeader({ title, subtitle, children }) {
   validateComponentProps(PageHeader, { title, subtitle, children });
@@ -24,16 +22,6 @@ export const Badge = ({ tone = 'muted', children }) => {
   validateComponentProps(Badge, { tone, children });
   return <span className={`badge badge-${tone}`}>{children}</span>;
 };
-
-export function Spinner({ label = 'Memuat data...' }) {
-  validateComponentProps(Spinner, { label });
-  return (
-    <output className="state">
-      <div className="spinner" />
-      <p className="muted">{label}</p>
-    </output>
-  );
-}
 
 export function EmptyState({ title, text, action }) {
   validateComponentProps(EmptyState, { title, text, action });
@@ -87,24 +75,6 @@ export function SearchBox({ value, onChange, placeholder }) {
   );
 }
 
-export function Field({ label, error, hint, children, htmlFor }) {
-  validateComponentProps(Field, { label, error, hint, children, htmlFor });
-  let message = null;
-  if (error) message = <p className="field-error" role="alert">{error}</p>;
-  else if (hint) message = <p className="field-hint">{hint}</p>;
-  return (
-    <div className={`field ${error ? 'has-error' : ''}`}>
-      <label htmlFor={htmlFor}>{label}</label>
-      {children}
-      {message}
-    </div>
-  );
-}
-
-Ulos.propTypes = {
-  tall: PropTypes.bool,
-};
-
 PageHeader.propTypes = {
   title: PropTypes.string.isRequired,
   subtitle: PropTypes.string,
@@ -114,10 +84,6 @@ PageHeader.propTypes = {
 Badge.propTypes = {
   tone: PropTypes.string,
   children: ReactNodePropType.isRequired,
-};
-
-Spinner.propTypes = {
-  label: PropTypes.string,
 };
 
 EmptyState.propTypes = {
@@ -147,12 +113,4 @@ SearchBox.propTypes = {
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   placeholder: PropTypes.string.isRequired,
-};
-
-Field.propTypes = {
-  label: PropTypes.string.isRequired,
-  error: PropTypes.string,
-  hint: ReactNodePropType,
-  children: ReactNodePropType.isRequired,
-  htmlFor: PropTypes.string.isRequired,
 };
