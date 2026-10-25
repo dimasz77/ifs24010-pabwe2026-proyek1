@@ -47,6 +47,16 @@ describe('App routes and authenticated layout', () => {
     expect(window.location.pathname).toBe('/motor');
   });
 
+  test('keeps the rental URL reachable without exposing management data', async () => {
+    window.history.replaceState({}, '', '/sewa');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Penyewaan' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masuk untuk melanjutkan' })).toHaveAttribute('href', '/auth/login');
+    expect(window.location.pathname).toBe('/sewa');
+  });
+
   test('restores the session, displays the offline warning, and logs out', async () => {
     localStorage.setItem('jenika_token', 'test-session-token');
     window.history.replaceState({}, '', '/');
