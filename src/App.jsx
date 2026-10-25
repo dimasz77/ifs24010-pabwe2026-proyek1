@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import PropTypes from 'prop-types';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { FeedbackProvider } from './components/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -23,6 +24,10 @@ function LoadingPage({ title }) {
     </main>
   );
 }
+
+LoadingPage.propTypes = {
+  title: PropTypes.string.isRequired,
+};
 
 function RequireAuth({ children }) {
   validateComponentProps(RequireAuth, { children });
