@@ -37,13 +37,14 @@ describe('App routes and authenticated layout', () => {
     expect(screen.getByRole('button', { name: 'Masuk' })).toHaveAttribute('id', 'btn-submit');
   });
 
-  test('redirects unauthenticated users to the login page', async () => {
-    window.history.replaceState({}, '', '/sewa');
+  test('keeps the motorcycle URL reachable without exposing management data', async () => {
+    window.history.replaceState({}, '', '/motor');
 
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Masuk' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Username')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Armada motor' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masuk untuk melanjutkan' })).toHaveAttribute('href', '/auth/login');
+    expect(window.location.pathname).toBe('/motor');
   });
 
   test('restores the session, displays the offline warning, and logs out', async () => {
