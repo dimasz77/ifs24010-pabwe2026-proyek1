@@ -43,11 +43,12 @@ function ProtectedArea() {
   if (!ready) return <LoadingPage title="Memeriksa sesi" />;
 
   if (!user) {
-    const pageTitle = location.pathname.startsWith('/motor')
-      ? 'Armada motor'
-      : location.pathname.startsWith('/pelanggan')
-        ? 'Pelanggan'
-        : 'Penyewaan';
+    let pageTitle = 'Penyewaan';
+    if (location.pathname.startsWith('/motor')) {
+      pageTitle = 'Armada motor';
+    } else if (location.pathname.startsWith('/pelanggan')) {
+      pageTitle = 'Pelanggan';
+    }
 
     return (
       <main className="public-home-main public-protected-info">
