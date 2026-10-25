@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useOutlet } from 'react-router-dom';
+import { NavLink, useOutlet } from 'react-router-dom';
 import { LayoutDashboard, Bike, Users, ClipboardList, WifiOff, LogOut } from 'lucide-react';
 import { FeedbackProvider } from './Feedback';
 import { api } from '../lib/api';
