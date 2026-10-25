@@ -1,9 +1,8 @@
 import { WifiOff, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
-import { Field, Spinner, Ulos } from './critical-ui';
 
-export { Field, Spinner, Ulos };
+export { Field, Spinner, Ulos } from './critical-ui';
 
 export function PageHeader({ title, subtitle, children }) {
   validateComponentProps(PageHeader, { title, subtitle, children });
