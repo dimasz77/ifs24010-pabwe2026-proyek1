@@ -4,9 +4,9 @@ import { FeedbackProvider } from './components/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/ui';
 import { ReactNodePropType, validateComponentProps } from './lib/validateComponentProps';
+import Login from './pages/Login';
 
 const Layout = lazy(() => import('./components/Layout'));
-const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Motorcycles = lazy(() => import('./pages/Motorcycles'));

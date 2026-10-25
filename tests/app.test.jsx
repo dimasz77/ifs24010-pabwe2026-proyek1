@@ -17,6 +17,16 @@ afterEach(() => {
 });
 
 describe('App routes and authenticated layout', () => {
+  test('renders login selectors immediately on the login route', () => {
+    window.history.replaceState({}, '', '/auth/login');
+
+    render(<App />);
+
+    expect(screen.getByLabelText('Username')).toHaveAttribute('id', 'username');
+    expect(screen.getByLabelText('Kata sandi')).toHaveAttribute('id', 'password');
+    expect(screen.getByRole('button', { name: 'Masuk' })).toHaveAttribute('id', 'btn-submit');
+  });
+
   test('redirects unauthenticated users to the login page', async () => {
     window.history.replaceState({}, '', '/sewa');
 
