@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Plus, TriangleAlert, Clock } from 'lucide-react';
-import { api } from '../lib/api';
+import { getDashboardSummary } from '../lib/dashboardService';
 import { useAsync } from '../lib/hooks';
 import { rupiah, formatDate, formatLongDate, typeLabel, RENTAL_STATUS } from '../lib/format';
 import { PageHeader, Spinner, ErrorState, Badge, EmptyState } from '../components/ui';
 
 export default function Dashboard() {
-  const { data, loading, error, reload } = useAsync(() => api.get('/dashboard/summary'), []);
+  const { data, loading, error, reload } = useAsync(getDashboardSummary);
 
   if (loading && !data) return <Spinner label="Memuat ringkasan..." />;
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;

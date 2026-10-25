@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { api, ApiError } from '../lib/api';
+import { ApiError } from '../lib/api';
+import { createMotorcycle, updateMotorcycle } from '../lib/motorcycleService';
 import { validateComponentProps } from '../lib/validateComponentProps';
 import { validateMotor } from '../lib/validators';
 import { MOTOR_TYPES } from '../lib/format';
@@ -34,8 +35,8 @@ export default function MotorForm({ motor, locations, onClose, onSaved }) {
         ...v, engine_cc: Number(v.engine_cc), year: Number(v.year),
         price_per_day: Number(v.price_per_day), location_id: Number(v.location_id),
       };
-      if (motor) await api.put(`/motorcycles/${motor.id}`, payload);
-      else await api.post('/motorcycles', payload);
+      if (motor) await updateMotorcycle(motor.id, payload);
+      else await createMotorcycle(payload);
       toast.success(motor ? 'Data motor berhasil diperbarui' : 'Motor baru berhasil ditambahkan');
       onSaved();
     } catch (err) {

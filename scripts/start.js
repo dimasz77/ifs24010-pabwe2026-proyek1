@@ -1,12 +1,12 @@
 // Server produksi tanpa dependency: menyajikan hasil build (dist/) dengan fallback SPA,
 // dan meneruskan /api/* ke backend yang di-host terpisah (env API_URL, mis. https://api.contoh.app).
-import { createServer, request as httpRequest } from 'node:http';
-import { request as httpsRequest } from 'node:https';
+import { createServer } from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
+import { createApiProxy } from './proxy.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -48,17 +48,7 @@ function sendJson(res, status, message) {
   res.end(JSON.stringify({ success: false, error: { code: 'BAD_GATEWAY', message } }));
 }
 
-function proxy(req, res) {
-  if (!apiUrl) return sendJson(res, 502, 'API_URL belum diatur: isi dengan alamat backend.');
-  const target = new URL(apiUrl + req.url);
-  const send = target.protocol === 'https:' ? httpsRequest : httpRequest;
-  const upstream = send(target, { method: req.method, headers: { ...req.headers, host: target.host } }, (r) => {
-    res.writeHead(r.statusCode, r.headers);
-    r.pipe(res);
-  });
-  upstream.on('error', () => { if (!res.headersSent) sendJson(res, 502, 'Backend tidak dapat dihubungi.'); else res.destroy(); });
-  req.pipe(upstream);
-}
+const proxy = createApiProxy(apiUrl);
 
 function serveFile(req, res, file, cache) {
   const compressible = /^(text\/|application\/(javascript|json|xml))|image\/svg\+xml/.test(TYPES[extname(file)] || '');

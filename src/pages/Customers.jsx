@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Phone } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { api, ApiError } from '../lib/api';
+import { ApiError } from '../lib/api';
+import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '../lib/customerService';
+import { CUSTOMER_PAGE_SIZE } from '../lib/constants';
 import { useAsync, useDebounce } from '../lib/hooks';
 import { validateComponentProps } from '../lib/validateComponentProps';
 import { validateCustomer } from '../lib/validators';
@@ -30,7 +32,7 @@ function CustomerForm({ customer, onClose, onSaved }) {
     setSaving(true);
     try {
       const payload = { full_name: v.full_name, phone: v.phone, email: v.email, id_number: v.id_number, sim_number: v.sim_number, origin: v.origin };
-      const res = customer ? await api.put(`/customers/${customer.id}`, payload) : await api.post('/customers', payload);
+      const res = customer ? await updateCustomer(customer.id, payload) : await createCustomer(payload);
       toast.success(customer ? 'Data pelanggan diperbarui' : 'Pelanggan baru ditambahkan');
       onSaved(res.data);
     } catch (err) {
@@ -91,7 +93,10 @@ export default function Customers() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(null);
   const dq = useDebounce(q);
-  const { data, meta, loading, error, reload } = useAsync(() => api.get('/customers', { q: dq, page, limit: 10 }), [dq, page]);
+  const { data, meta, loading, error, reload } = useAsync(
+    () => listCustomers({ q: dq, page, limit: CUSTOMER_PAGE_SIZE }),
+    JSON.stringify([dq, page]),
+  );
 
   useEffect(() => {
     if (params.get('baru') === '1') { setForm({ customer: null }); setParams({}, { replace: true }); }
@@ -104,7 +109,7 @@ export default function Customers() {
     });
     if (ok) {
       try {
-        await api.del(`/customers/${c.id}`);
+        await deleteCustomer(c.id);
         toast.success('Pelanggan berhasil dihapus');
         if (data.length === 1 && page > 1) setPage(page - 1); else reload();
       } catch (err) { toast.error(err.message); }

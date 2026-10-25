@@ -1,17 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, ApiError } from '../lib/api';
+import { ApiError } from '../lib/api';
 import { useAsync, useDebounce } from '../lib/hooks';
 import { useLocations } from '../lib/data';
 import { validateRental } from '../lib/validators';
 import { rupiah, todayWib, addDays, diffDays, formatDate } from '../lib/format';
+import {
+  RENTAL_CUSTOMER_OPTIONS_LIMIT,
+  RENTAL_MOTORCYCLE_OPTIONS_LIMIT,
+  RENTAL_QUOTE_DEBOUNCE_MS,
+} from '../lib/constants';
+import {
+  createRental,
+  getRental,
+  getRentalQuote,
+  listAvailableMotorcycles,
+  listRentalCustomers,
+  updateRental,
+} from '../lib/rentalService';
 import { PageHeader, Spinner, ErrorState, Field } from '../components/ui';
 import { useToast } from '../components/Feedback';
 
 function useRentalData(id, isEdit, values, setValues) {
   const locations = useLocations();
-  const customers = useAsync(() => api.get('/customers', { limit: 100 }), []);
-  const existing = useAsync(() => (isEdit ? api.get(`/rentals/${id}`) : Promise.resolve({ data: null })), [id]);
+  const customers = useAsync(() => listRentalCustomers({ limit: RENTAL_CUSTOMER_OPTIONS_LIMIT }));
+  const existing = useAsync(
+    () => (isEdit ? getRental(id) : Promise.resolve({ data: null })),
+    `${isEdit ? 'edit' : 'new'}:${id || ''}`,
+  );
 
   useEffect(() => {
     const rental = existing.data;
@@ -28,13 +44,13 @@ function useRentalData(id, isEdit, values, setValues) {
 
   const rangeOk = values.start_date && values.end_date && diffDays(values.start_date, values.end_date) >= 1;
   const motors = useAsync(
-    () => api.get('/motorcycles', {
+    () => listAvailableMotorcycles({
       status: 'tersedia',
-      limit: 100,
+      limit: RENTAL_MOTORCYCLE_OPTIONS_LIMIT,
       sort: 'brand',
       ...(rangeOk ? { available_from: values.start_date, available_to: values.end_date } : {}),
     }),
-    [rangeOk ? values.start_date : '', rangeOk ? values.end_date : ''],
+    JSON.stringify([rangeOk ? values.start_date : '', rangeOk ? values.end_date : '']),
   );
 
   const motorOptions = useMemo(() => {
@@ -63,7 +79,10 @@ function useRentalData(id, isEdit, values, setValues) {
 }
 
 function useRentalQuote(values) {
-  const debouncedKey = useDebounce(`${values.motorcycle_id}|${values.start_date}|${values.end_date}`, 300);
+  const debouncedKey = useDebounce(
+    `${values.motorcycle_id}|${values.start_date}|${values.end_date}`,
+    RENTAL_QUOTE_DEBOUNCE_MS,
+  );
   const [quote, setQuote] = useState({ data: null, error: '' });
 
   useEffect(() => {
@@ -75,7 +94,7 @@ function useRentalQuote(values) {
     }
 
     let active = true;
-    api.get('/rentals/quote', { motorcycle_id: motorId, start_date: startDate, end_date: endDate })
+    getRentalQuote({ motorcycle_id: motorId, start_date: startDate, end_date: endDate })
       .then((response) => {
         if (active) setQuote({ data: response.data, error: '' });
       })
@@ -197,8 +216,8 @@ async function submitRental(event, { values, today, isEdit, originalStart, id, s
       pickup_location_id: Number(values.pickup_location_id),
     };
     const response = isEdit
-      ? await api.put(`/rentals/${id}`, payload)
-      : await api.post('/rentals', payload);
+      ? await updateRental(id, payload)
+      : await createRental(payload);
     const message = isEdit ? 'Data sewa berhasil diperbarui' : `Sewa ${response.data.code} berhasil dibuat`;
     toast.success(message);
     navigate('/sewa');

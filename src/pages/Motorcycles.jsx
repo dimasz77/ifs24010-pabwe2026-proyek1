@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, MapPin, Gauge, Calendar, Wrench, X } from 'lucide-react';
-import { api } from '../lib/api';
+import { deleteMotorcycle, listMotorcycles } from '../lib/motorcycleService';
+import { MOTORCYCLE_PAGE_SIZE } from '../lib/constants';
 import { useAsync, useDebounce } from '../lib/hooks';
 import { useLocations } from '../lib/data';
 import { rupiah, MOTOR_TYPES, typeLabel } from '../lib/format';
@@ -83,10 +84,10 @@ export default function Motorcycles() {
 
   const rangeOk = f.available_from && f.available_to && f.available_to > f.available_from;
   const query = {
-    q: dq, type: f.type, status: f.status, location_id: f.location_id, sort: f.sort, page, limit: 9,
+    q: dq, type: f.type, status: f.status, location_id: f.location_id, sort: f.sort, page, limit: MOTORCYCLE_PAGE_SIZE,
     ...(rangeOk ? { available_from: f.available_from, available_to: f.available_to } : {}),
   };
-  const { data, meta, loading, error, reload } = useAsync(() => api.get('/motorcycles', query), [JSON.stringify(query)]);
+  const { data, meta, loading, error, reload } = useAsync(() => listMotorcycles(query), JSON.stringify(query));
 
   const setFilter = (k) => (e) => { setF((s) => ({ ...s, [k]: e.target.value })); setPage(1); };
   const hasFilter = q || f.type || f.status || f.location_id || f.available_from || f.available_to;
@@ -101,7 +102,7 @@ export default function Motorcycles() {
     });
     if (ok) {
       try {
-        await api.del(`/motorcycles/${m.id}`);
+        await deleteMotorcycle(m.id);
         toast.success('Motor berhasil dihapus');
         if (data.length === 1 && page > 1) setPage(page - 1); else reload();
       } catch (err) { toast.error(err.message); }

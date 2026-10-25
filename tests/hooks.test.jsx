@@ -14,7 +14,7 @@ function deferred() {
 }
 
 function AsyncHarness({ requestId, load }) {
-  const result = useAsync(() => load(requestId), [requestId]);
+  const result = useAsync(() => load(requestId), String(requestId));
   return <p>{result.loading ? 'loading' : result.error ? `error:${result.error.message}` : `data:${result.data.value}`}</p>;
 }
 

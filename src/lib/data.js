@@ -3,5 +3,5 @@ import { api } from './api';
 
 /** Daftar lokasi jemput (data master, jarang berubah). */
 export function useLocations() {
-  return useAsync(() => api.get('/locations'), []);
+  return useAsync(() => api.get('/locations'));
 }

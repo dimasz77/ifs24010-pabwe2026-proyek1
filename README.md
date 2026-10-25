@@ -13,9 +13,12 @@ src/{pages,components,context,lib}   tests/   e2e/e2e_test.py   public/
 ```
 
 ## Pola kualitas
-- `src/lib/hooks.js` menyediakan `useAsync` bersama untuk pemuatan data, status loading/error, dan reload; gunakan ini daripada menduplikasi state request di halaman.
+- `src/lib/hooks.js` menyediakan `useAsync` bersama untuk pemuatan data, status loading/error, dan reload. Gunakan `key` serialisasi stabil untuk memicu ulang request saat parameter berubah.
+- `src/lib/customerService.js`, `src/lib/motorcycleService.js`, `src/lib/rentalService.js`, dan `src/lib/dashboardService.js` memisahkan akses endpoint/domain dari komponen halaman.
 - `AppErrorBoundary` menangani error render yang tidak tertangani dan menampilkan opsi pemulihan; error API tetap ditangani pada layer API dan komponen halaman.
 - Validasi `PropTypes` runtime hanya berjalan di development agar tidak menambah kerja saat production.
+- Modal mengelola fokus keyboard, pembatasan Tab/Shift+Tab, Escape, dan pengembalian fokus pemicu saat ditutup.
+- Proxy API menutup request yang tidak responsif dan mengembalikan HTTP 504 setelah batas waktu.
 
 ## Menjalankan (pengembangan)
 Jalankan backend lebih dulu (lihat README repository backend, default http://localhost:4000), lalu:

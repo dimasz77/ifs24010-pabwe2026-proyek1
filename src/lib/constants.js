@@ -1,0 +1,7 @@
+export const DEFAULT_DEBOUNCE_MS = 350;
+export const CUSTOMER_PAGE_SIZE = 10;
+export const MOTORCYCLE_PAGE_SIZE = 9;
+export const RENTAL_PAGE_SIZE = 10;
+export const RENTAL_CUSTOMER_OPTIONS_LIMIT = 100;
+export const RENTAL_MOTORCYCLE_OPTIONS_LIMIT = 100;
+export const RENTAL_QUOTE_DEBOUNCE_MS = 300;

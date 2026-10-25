@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DEFAULT_DEBOUNCE_MS } from './constants';
 
-/** Memuat data async dengan state loading/error dan reload manual. Hasil lama diabaikan bila ada permintaan baru. */
-export function useAsync(fn, deps = []) {
+/** Memuat data async; key stabil menentukan kapan request diulang setelah render. */
+export function useAsync(fn, key = '') {
   const [state, setState] = useState({ data: null, meta: null, loading: true, error: null });
   const counter = useRef(0);
   const fnRef = useRef(fn);
@@ -19,17 +20,17 @@ export function useAsync(fn, deps = []) {
           setState((s) => ({ ...s, loading: false, error }));
         }
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     run();
     return () => { counter.current += 1; };
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [run, key]);
 
   return { ...state, reload: run };
 }
 
-export function useDebounce(value, delay = 350) {
+export function useDebounce(value, delay = DEFAULT_DEBOUNCE_MS) {
   const [v, setV] = useState(value);
   useEffect(() => {
     const t = setTimeout(() => setV(value), delay);

@@ -180,22 +180,43 @@ describe('Feedback and modal behavior', () => {
     expect(await screen.findByText('false')).toBeInTheDocument();
   });
 
-  test('focuses the first form field and closes on Escape', async () => {
-    const onClose = vi.fn();
+  test('traps keyboard focus and restores focus after closing', async () => {
+    function ModalHost() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open modal</button>
+          <button>Outside action</button>
+          {open && (
+            <Modal title="Edit data" onClose={() => setOpen(false)}>
+              <input aria-label="Nama" />
+              <button type="button">Simpan</button>
+            </Modal>
+          )}
+        </>
+      );
+    }
     const user = userEvent.setup();
-    const { unmount } = render(
-      <Modal title="Edit data" onClose={onClose}>
-        <input aria-label="Nama" />
-      </Modal>,
-    );
+    render(<ModalHost />);
+    const trigger = screen.getByRole('button', { name: 'Open modal' });
+    await user.click(trigger);
 
     expect(screen.getByRole('dialog', { name: 'Edit data' })).toBeInTheDocument();
     expect(screen.getByLabelText('Nama')).toHaveFocus();
     expect(document.body.style.overflow).toBe('hidden');
-    await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledOnce();
+    screen.getByRole('button', { name: 'Outside action' }).focus();
+    expect(screen.getByLabelText('Nama')).toHaveFocus();
 
-    unmount();
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(screen.getByRole('button', { name: 'Tutup' })).toHaveFocus();
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(screen.getByRole('button', { name: 'Simpan' })).toHaveFocus();
+    await user.keyboard('{Tab}');
+    expect(screen.getByRole('button', { name: 'Tutup' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(document.body.style.overflow).toBe('');
+    expect(trigger).toHaveFocus();
   });
 });
