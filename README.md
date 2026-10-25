@@ -56,6 +56,7 @@ Build produksi juga menghasilkan source map untuk audit/debugging; `public/robot
 Alternatif: isi `VITE_API_URL` saat build agar browser memanggil backend langsung (backend harus mengizinkan origin ini di `CORS_ORIGINS`).
 
 Docker (nginx, tanpa `npm start`): `VITE_API_URL=https://api.contoh.app docker compose up -d --build` -> http://localhost:8080.
+Konfigurasi nginx mengaktifkan gzip untuk aset teks; pastikan deployment Docker memakai `nginx.conf` ini. HTTP/2 dan TLS harus diaktifkan pada reverse proxy/platform hosting yang menghadap publik (container hanya melayani HTTP di port 80). Setelah deploy, periksa header `Content-Encoding: gzip` pada aset JS/CSS dan protokol HTTP/2 dari browser.
 
 ## Troubleshooting
 | Gejala | Solusi |

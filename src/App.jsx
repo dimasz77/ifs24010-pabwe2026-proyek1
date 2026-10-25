@@ -15,11 +15,20 @@ const Rentals = lazy(() => import('./pages/Rentals'));
 const RentalForm = lazy(() => import('./pages/RentalForm'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+function LoadingPage({ title }) {
+  return (
+    <main className="route-loading" aria-busy="true">
+      <h1 className="sr-only">{title}</h1>
+      <Spinner label={`${title}...`} />
+    </main>
+  );
+}
+
 function RequireAuth({ children }) {
   validateComponentProps(RequireAuth, { children });
   const { user, ready } = useAuth();
   const location = useLocation();
-  if (!ready) return <Spinner label="Memeriksa sesi..." />;
+  if (!ready) return <LoadingPage title="Memeriksa sesi" />;
   if (!user) return <Navigate to="/auth/login" replace state={{ from: location.pathname + location.search }} />;
   return children;
 }
@@ -33,7 +42,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <FeedbackProvider>
-          <Suspense fallback={<Spinner label="Memuat halaman..." />}>
+          <Suspense fallback={<LoadingPage title="Memuat halaman" />}>
             <Routes>
               <Route path="auth/login" element={<Login />} />
               <Route path="auth/register" element={<Register />} />
