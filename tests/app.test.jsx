@@ -17,6 +17,16 @@ afterEach(() => {
 });
 
 describe('App routes and authenticated layout', () => {
+  test('keeps the public home page at / when no session exists', () => {
+    window.history.replaceState({}, '', '/');
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: 'Kelola penyewaan motor dengan lebih mudah.' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/auth/login');
+    expect(window.location.pathname).toBe('/');
+  });
+
   test('renders login selectors immediately on the login route', () => {
     window.history.replaceState({}, '', '/auth/login');
 
@@ -66,7 +76,7 @@ describe('App routes and authenticated layout', () => {
     expect(screen.getByRole('navigation', { name: 'Menu utama' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /keluar/i }));
-    expect(await screen.findByRole('heading', { name: 'Masuk' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Kelola penyewaan motor dengan lebih mudah.' })).toBeInTheDocument();
     expect(localStorage.getItem('jenika_token')).toBeNull();
   });
 

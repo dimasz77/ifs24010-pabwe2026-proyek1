@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useOutlet } from 'react-router-dom';
 import { LayoutDashboard, Bike, Users, ClipboardList, WifiOff, LogOut } from 'lucide-react';
 import { FeedbackProvider } from './Feedback';
 import { api } from '../lib/api';
 import { Ulos } from './ui';
 import { useAuth } from '../context/AuthContext';
+import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
 const NAV = [
   { to: '/', label: 'Beranda', icon: LayoutDashboard, end: true },
@@ -25,9 +26,11 @@ function useBackendStatus() {
   return online;
 }
 
-export default function Layout() {
+export default function Layout({ children }) {
+  validateComponentProps(Layout, { children });
   const online = useBackendStatus();
   const { user, logout } = useAuth();
+  const outlet = useOutlet();
   return (
     <FeedbackProvider>
       <div className="shell">
@@ -63,9 +66,13 @@ export default function Layout() {
               <WifiOff size={18} /> Server backend tidak merespons. Data mungkin tidak terbarui; sistem mencoba menghubungi ulang otomatis.
             </div>
           )}
-          <main className="content"><Outlet /></main>
+          <main className="content">{children ?? outlet}</main>
         </div>
       </div>
     </FeedbackProvider>
   );
 }
+
+Layout.propTypes = {
+  children: ReactNodePropType,
+};

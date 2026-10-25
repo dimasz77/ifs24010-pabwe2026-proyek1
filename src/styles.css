@@ -273,12 +273,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .auth-card h1 { margin-bottom: 2px; }
 .auth-form { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .auth-footer { margin-top: 14px; color: var(--muted); }
+.public-home { min-height: 100vh; display: flex; flex-direction: column; }
+.public-home-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px clamp(20px, 6vw, 88px); background: var(--surface); border-bottom: 1px solid var(--line); }
+.public-home-brand { color: var(--toba-800); font-family: var(--font-head); font-size: 1.35rem; font-weight: 700; }
+.public-home-header nav, .public-home-actions { display: flex; align-items: center; gap: 12px; }
+.public-home-main { width: min(760px, 100%); margin: auto; padding: 72px 24px 96px; text-align: center; }
+.public-home-eyebrow { color: var(--crimson); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.public-home-main h1 { margin-top: 14px; font-size: clamp(2.2rem, 6vw, 4.2rem); }
+.public-home-description { max-width: 54ch; margin: 18px auto 0; color: var(--muted); font-size: 1.15rem; }
+.public-home-actions { justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+.public-home-places { margin-top: 44px; color: var(--muted); font-size: 0.9rem; }
 @media (max-width: 800px) {
   .auth-page { grid-template-columns: 1fr; }
   .auth-side { padding: 0 20px 22px; gap: 10px; }
   .auth-side .ulos { margin: 0 -20px; }
   .auth-brand { margin-top: 20px; }
   .auth-tagline, .auth-places { display: none; }
+  .public-home-header { padding: 16px 20px; }
+  .public-home-main { padding-top: 56px; }
 }
 @media (max-width: 960px) {
   .user-box { flex-direction: row; align-items: center; margin-top: 0; margin-left: auto; padding: 0 12px; border-top: 0; }

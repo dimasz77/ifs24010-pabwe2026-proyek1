@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/critical-ui';
 import { ReactNodePropType, validateComponentProps } from './lib/validateComponentProps';
 import Login from './pages/Login';
+import Home from './pages/Home';
 
 const Layout = lazy(() => import('./components/Layout'));
 const Register = lazy(() => import('./pages/Register'));
@@ -14,6 +15,13 @@ const Customers = lazy(() => import('./pages/Customers'));
 const Rentals = lazy(() => import('./pages/Rentals'));
 const RentalForm = lazy(() => import('./pages/RentalForm'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+function HomeRoute() {
+  const { user, ready } = useAuth();
+  if (!ready) return <LoadingPage title="Memeriksa sesi" />;
+  if (!user) return <Home />;
+  return <Layout><Dashboard /></Layout>;
+}
 
 function LoadingPage({ title }) {
   return (
@@ -47,12 +55,12 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<LoadingPage title="Memuat halaman" />}>
           <Routes>
+            <Route path="/" element={<HomeRoute />} />
             <Route path="auth/login" element={<Login />} />
             <Route path="auth/register" element={<Register />} />
             <Route path="masuk" element={<Navigate to="/auth/login" replace />} />
             <Route path="daftar" element={<Navigate to="/auth/register" replace />} />
             <Route element={<RequireAuth><Layout /></RequireAuth>}>
-              <Route index element={<Dashboard />} />
               <Route path="motor" element={<Motorcycles />} />
               <Route path="pelanggan" element={<Customers />} />
               <Route path="sewa" element={<Rentals />} />

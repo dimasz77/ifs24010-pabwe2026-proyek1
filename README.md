@@ -1,6 +1,6 @@
 # Jenika Rental - Frontend (React)
 
-Antarmuka web aplikasi **rental sepeda motor di kawasan Samosir**: beranda/ringkasan, armada motor, pelanggan, penyewaan (pesan -> mulai -> kembali), registrasi dan login. Repository ini hanya berisi **frontend**; API ada di repository terpisah: `ifs24010-pabwe2026-proyek1-backend`.
+Antarmuka web aplikasi **rental sepeda motor di kawasan Samosir**: beranda publik, ringkasan setelah login, armada motor, pelanggan, penyewaan (pesan -> mulai -> kembali), registrasi dan login. Repository ini hanya berisi **frontend**; API ada di repository terpisah: `ifs24010-pabwe2026-proyek1-backend`.
 
 Proyek 1 PABWE, Institut Teknologi Del, TA 2026/2027. Penulis: Dimas Rexan Samuel Sidabutar (11S24010).
 
