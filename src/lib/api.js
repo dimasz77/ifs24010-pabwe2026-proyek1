@@ -1,11 +1,5 @@
 const BASE = `${(import.meta.env.VITE_API_URL || '').replace(/\/$/, '')}/api`;
 
-const TOKEN_KEY = 'jenika_token';
-export const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
-export const setToken = (t) => {
-  try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { /* penyimpanan tidak tersedia */ }
-};
-
 export class ApiError extends Error {
   constructor(message, { status = 0, code = 'UNKNOWN', details = null } = {}) {
     super(message);
@@ -30,21 +24,19 @@ function buildUrl(path, params) {
 function expireSessionForUnauthorizedRequest(path) {
   if (path.startsWith('/auth/login')) return;
   if (path.startsWith('/auth/register')) return;
-  setToken(null);
   globalThis.dispatchEvent(new Event('auth:expired'));
 }
 
 async function request(path, { method = 'GET', body, params, signal } = {}) {
   let res;
   try {
-    const token = getToken();
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    if (token) headers.Authorization = `Bearer ${token}`;
     const requestBody = body === undefined ? undefined : JSON.stringify(body);
     res = await fetch(buildUrl(path, params), {
       method,
       signal,
+      credentials: 'include',
       headers,
       body: requestBody,
     });

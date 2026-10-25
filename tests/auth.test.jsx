@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
-import { api, getToken, setToken } from '../src/lib/api';
+import { api } from '../src/lib/api';
 import Login from '../src/pages/Login';
 import Register, { validateRegister } from '../src/pages/Register';
 
@@ -24,7 +24,6 @@ const wrap = (ui, path = '/auth/login') => render(
   </MemoryRouter>,
 );
 
-beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
 
 describe('validateRegister', () => {
@@ -79,19 +78,22 @@ describe('Login', () => {
     expect(document.querySelector('#btn-submit')).toBeTruthy();
   });
 
-  test('berhasil: menyimpan token dan pindah ke beranda', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(200, { success: true, data: { user: { id: 1, name: 'Dimas', email: 'd@x.id' }, token: 'tok123' } }));
+  test('berhasil: memakai sesi cookie dan pindah ke beranda', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => String(url).includes('/auth/me')
+      ? json(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'Belum login' } })
+      : json(200, { success: true, data: { user: { id: 1, name: 'Dimas', email: 'd@x.id' } } }));
     const user = userEvent.setup();
     wrap(<Login />);
     await user.type(screen.getByLabelText('Username'), 'dimas');
     await user.type(screen.getByLabelText('Kata sandi'), 'rahasia123');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
     expect(await screen.findByText('BERANDA')).toBeInTheDocument();
-    expect(getToken()).toBe('tok123');
-    expect(JSON.parse(spy.mock.calls[0][1].body)).toEqual({ username: 'dimas', password: 'rahasia123' });
+    expect(spy.mock.calls.every(([, options]) => options.credentials === 'include')).toBe(true);
+    expect(spy.mock.calls[1][1].headers.Authorization).toBeUndefined();
+    expect(JSON.parse(spy.mock.calls[1][1].body)).toEqual({ username: 'dimas', password: 'rahasia123' });
   });
 
-  test('gagal: menampilkan pesan dari server, tidak menyimpan token', async () => {
+  test('gagal: menampilkan pesan dari server', async () => {
     vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, { success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Username atau kata sandi salah' } }));
     const user = userEvent.setup();
     wrap(<Login />);
@@ -99,25 +101,27 @@ describe('Login', () => {
     await user.type(screen.getByLabelText('Kata sandi'), 'salah');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
     expect(await screen.findByText('Username atau kata sandi salah')).toBeInTheDocument();
-    expect(getToken()).toBeNull();
   });
 
   test('validasi: kolom kosong tidak mengirim request', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch');
+    const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, {
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Belum login' },
+    }));
     const user = userEvent.setup();
     wrap(<Login />);
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
     expect(await screen.findByText('Username wajib diisi')).toBeInTheDocument();
-    expect(spy).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(String(spy.mock.calls[0][0])).toContain('/auth/me');
   });
 });
 
 describe('Register', () => {
   test('successfully registers a user and redirects to the home page', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(201, {
-      success: true,
-      data: { user: { id: 2, name: 'Dimas Sidabutar' }, token: 'new-token' },
-    }));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => String(url).includes('/auth/me')
+      ? json(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'Belum login' } })
+      : json(201, { success: true, data: { user: { id: 2, name: 'Dimas Sidabutar' } } }));
     const user = userEvent.setup();
 
     wrap(<Register />, '/auth/register');
@@ -129,8 +133,8 @@ describe('Register', () => {
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
 
     expect(await screen.findByText('BERANDA')).toBeInTheDocument();
-    expect(getToken()).toBe('new-token');
-    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+    expect(fetchSpy.mock.calls.every(([, options]) => options.credentials === 'include')).toBe(true);
+    expect(JSON.parse(fetchSpy.mock.calls[1][1].body)).toEqual({
       name: 'Dimas Sidabutar',
       username: 'dimas',
       email: 'dimas@example.com',
@@ -139,7 +143,10 @@ describe('Register', () => {
   });
 
   test('konfirmasi sandi berbeda ditolak di frontend', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch');
+    const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, {
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Belum login' },
+    }));
     const user = userEvent.setup();
     wrap(<Register />, '/auth/register');
     await user.type(screen.getByLabelText('Nama lengkap'), 'Dimas Sidabutar');
@@ -148,7 +155,8 @@ describe('Register', () => {
     await user.type(screen.getByLabelText('Ulangi kata sandi'), 'beda12345');
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
     expect(await screen.findByText('Konfirmasi kata sandi tidak sama')).toBeInTheDocument();
-    expect(spy).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(String(spy.mock.calls[0][0])).toContain('/auth/me');
   });
 
   test('username duplikat dari server tampil pada kolom username', async () => {
@@ -177,32 +185,29 @@ describe('Register', () => {
   });
 });
 
-describe('api client + token', () => {
-  test('menyertakan header Authorization bila token ada', async () => {
-    setToken('abc');
+describe('api client + cookie session', () => {
+  test('mengirim credentials tanpa bearer token yang dapat dibaca JavaScript', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(200, { success: true, data: [] }));
     await api.get('/motorcycles');
-    expect(spy.mock.calls[0][1].headers.Authorization).toBe('Bearer abc');
+    expect(spy.mock.calls[0][1].credentials).toBe('include');
+    expect(spy.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
-  test('respons 401 menghapus token dan memicu event auth:expired', async () => {
-    setToken('abc');
+  test('respons 401 memicu event auth:expired', async () => {
     const handler = vi.fn();
     window.addEventListener('auth:expired', handler);
     vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'x' } }));
     await expect(api.get('/motorcycles')).rejects.toMatchObject({ status: 401 });
-    expect(getToken()).toBeNull();
     expect(handler).toHaveBeenCalled();
     window.removeEventListener('auth:expired', handler);
   });
 });
 
 describe('AuthProvider session recovery', () => {
-  test('restores the current user from a saved token', async () => {
-    setToken('saved-token');
+  test('restores the current user from the HttpOnly session cookie', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(json(200, {
       success: true,
-      data: { id: 8, name: 'Dimas', token: 'saved-token' },
+      data: { id: 8, name: 'Dimas' },
     }));
 
     render(
@@ -215,8 +220,7 @@ describe('AuthProvider session recovery', () => {
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('/auth/me'), expect.any(Object));
   });
 
-  test('retains the saved token if session recovery fails without a 401', async () => {
-    setToken('saved-token');
+  test('continues without a user if session recovery fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockReturnValue(json(500, {
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Server error' },
@@ -229,11 +233,9 @@ describe('AuthProvider session recovery', () => {
     );
 
     expect(await screen.findByText('SESSION:EMPTY')).toBeInTheDocument();
-    expect(getToken()).toBe('saved-token');
   });
 
-  test('clears an expired token when session recovery returns 401', async () => {
-    setToken('expired-token');
+  test('continues without a user when the cookie session has expired', async () => {
     vi.spyOn(globalThis, 'fetch').mockReturnValue(json(401, {
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'Sesi berakhir' },
@@ -246,6 +248,5 @@ describe('AuthProvider session recovery', () => {
     );
 
     expect(await screen.findByText('SESSION:EMPTY')).toBeInTheDocument();
-    expect(getToken()).toBeNull();
   });
 });

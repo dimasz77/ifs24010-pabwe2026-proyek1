@@ -1,16 +1,15 @@
-import { api, ApiError, getToken } from '../src/lib/api';
+import { api, ApiError } from '../src/lib/api';
 
 const respond = (status, body) => Promise.resolve({ ok: status >= 200 && status < 300, status, json: () => Promise.resolve(body) });
 
 afterEach(() => vi.restoreAllMocks());
 
 describe('api client', () => {
-  test('mengembalikan null jika penyimpanan token tidak tersedia', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('Storage unavailable');
-    });
-
-    expect(getToken()).toBeNull();
+  test('mengirim cookies untuk semua request tanpa bearer token JavaScript', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockReturnValue(respond(200, { success: true, data: [] }));
+    await api.get('/auth/me');
+    expect(spy.mock.calls[0][1].credentials).toBe('include');
+    expect(spy.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
   test('mengembalikan data dan meta, menyusun query string tanpa nilai kosong', async () => {
@@ -44,7 +43,6 @@ describe('api client', () => {
   });
 
   test.each(['/auth/login', '/auth/register'])('401 dari %s tidak menghapus sesi', async (path) => {
-    localStorage.setItem('jenika_token', 'still-signed-in');
     vi.spyOn(globalThis, 'fetch').mockReturnValue(respond(401, {
       success: false,
       error: { code: 'INVALID_CREDENTIALS', message: 'Unauthorized' },
@@ -54,7 +52,6 @@ describe('api client', () => {
 
     await expect(api.post(path, {})).rejects.toMatchObject({ status: 401 });
 
-    expect(localStorage.getItem('jenika_token')).toBe('still-signed-in');
     expect(expired).not.toHaveBeenCalled();
     globalThis.removeEventListener('auth:expired', expired);
   });

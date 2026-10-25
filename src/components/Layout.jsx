@@ -31,6 +31,21 @@ export default function Layout({ children }) {
   const online = useBackendStatus();
   const { user, logout } = useAuth();
   const outlet = useOutlet();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    setLogoutError('');
+    try {
+      await logout();
+    } catch (error) {
+      setLogoutError(error.message);
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <FeedbackProvider>
       <div className="shell">
@@ -55,8 +70,11 @@ export default function Layout({ children }) {
               <p className="user-name">{user?.name}</p>
               <p className="user-email">@{user?.username}</p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={logout}><LogOut size={16} /> Keluar</button>
+            <button className="btn btn-ghost btn-sm" onClick={handleLogout} disabled={loggingOut}>
+              <LogOut size={16} /> {loggingOut ? 'Keluar...' : 'Keluar'}
+            </button>
           </div>
+          {logoutError && <p className="sidebar-foot" role="alert">{logoutError}</p>}
           <p className="sidebar-foot">Tomok, Tuktuk, Ambarita, Pangururan, dan Simanindo</p>
         </aside>
 

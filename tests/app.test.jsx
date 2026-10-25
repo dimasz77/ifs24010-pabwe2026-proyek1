@@ -8,21 +8,26 @@ const respond = (data) => ({
   status: 200,
   json: () => Promise.resolve({ success: true, data }),
 });
+const unauthorized = () => ({
+  ok: false,
+  status: 401,
+  json: () => Promise.resolve({ success: false, error: { code: 'UNAUTHORIZED', message: 'Belum login' } }),
+});
 
 afterEach(() => {
   cleanup();
-  localStorage.removeItem('jenika_token');
   window.history.replaceState({}, '', '/');
   vi.restoreAllMocks();
 });
 
 describe('App routes and authenticated layout', () => {
-  test('keeps the public home page at / when no session exists', () => {
+  test('keeps the public home page at / when no session exists', async () => {
     window.history.replaceState({}, '', '/');
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(unauthorized());
 
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Kelola penyewaan motor dengan lebih mudah.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Kelola penyewaan motor dengan lebih mudah.' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/auth/login');
     expect(window.location.pathname).toBe('/');
   });
@@ -39,6 +44,7 @@ describe('App routes and authenticated layout', () => {
 
   test('keeps the motorcycle URL reachable without exposing management data', async () => {
     window.history.replaceState({}, '', '/motor');
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(unauthorized());
 
     render(<App />);
 
@@ -49,6 +55,7 @@ describe('App routes and authenticated layout', () => {
 
   test('keeps the rental URL reachable without exposing management data', async () => {
     window.history.replaceState({}, '', '/sewa');
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(unauthorized());
 
     render(<App />);
 
@@ -58,10 +65,10 @@ describe('App routes and authenticated layout', () => {
   });
 
   test('restores the session, displays the offline warning, and logs out', async () => {
-    localStorage.setItem('jenika_token', 'test-session-token');
     window.history.replaceState({}, '', '/');
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       if (String(url).includes('/auth/me')) return Promise.resolve(respond({ name: 'Admin', username: 'admin' }));
+      if (String(url).includes('/auth/logout')) return Promise.resolve(respond({ loggedOut: true }));
       if (String(url).includes('/health')) return Promise.reject(new TypeError('Network unavailable'));
       if (String(url).includes('/dashboard/summary')) {
         return Promise.resolve(respond({
@@ -81,18 +88,16 @@ describe('App routes and authenticated layout', () => {
 
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText('@admin')).toBeInTheDocument();
     expect(await screen.findByRole('alert')).toHaveTextContent('Server backend tidak merespons');
     expect(screen.getByRole('navigation', { name: 'Menu utama' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /keluar/i }));
     expect(await screen.findByRole('heading', { name: 'Kelola penyewaan motor dengan lebih mudah.' })).toBeInTheDocument();
-    expect(localStorage.getItem('jenika_token')).toBeNull();
   });
 
   test('keeps the layout online when its health check succeeds', async () => {
-    localStorage.setItem('jenika_token', 'test-session-token');
     window.history.replaceState({}, '', '/');
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       if (String(url).includes('/auth/me')) return Promise.resolve(respond({ name: 'Admin', username: 'admin' }));
@@ -114,7 +119,7 @@ describe('App routes and authenticated layout', () => {
 
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Horas! Ringkasan hari ini' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByText(/Server backend tidak merespons/)).not.toBeInTheDocument();
   });
 });

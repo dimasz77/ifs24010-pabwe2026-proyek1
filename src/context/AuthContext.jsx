@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, getToken, setToken } from '../lib/api';
+import { api } from '../lib/api';
 import { ReactNodePropType, validateComponentProps } from '../lib/validateComponentProps';
 
 const AuthCtx = createContext(null);
@@ -8,18 +8,17 @@ export const useAuth = () => useContext(AuthCtx);
 export function AuthProvider({ children }) {
   validateComponentProps(AuthProvider, { children });
   const [user, setUser] = useState(null);
-  const [ready, setReady] = useState(() => !getToken());
+  const [ready, setReady] = useState(false);
 
-  // Pulihkan sesi dari token yang tersimpan
   useEffect(() => {
-    if (!getToken()) return;
+    let active = true;
     api.get('/auth/me')
-      .then((res) => setUser(res.data))
-      .catch((err) => { if (err.status === 401) setToken(null); })
-      .finally(() => setReady(true));
+      .then((res) => { if (active) setUser(res.data); })
+      .catch(() => { if (active) setUser(null); })
+      .finally(() => { if (active) setReady(true); });
+    return () => { active = false; };
   }, []);
 
-  // Token ditolak server (kedaluwarsa/tidak valid) -> keluar otomatis
   useEffect(() => {
     const onExpired = () => setUser(null);
     globalThis.addEventListener('auth:expired', onExpired);
@@ -27,7 +26,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   const finish = useCallback((res) => {
-    setToken(res.data.token);
     setUser(res.data.user);
     return res.data.user;
   }, []);
@@ -37,7 +35,10 @@ export function AuthProvider({ children }) {
     ready,
     login: async (username, password) => finish(await api.post('/auth/login', { username, password })),
     register: async (payload) => finish(await api.post('/auth/register', payload)),
-    logout: () => { setToken(null); setUser(null); },
+    logout: async () => {
+      await api.post('/auth/logout');
+      setUser(null);
+    },
   }), [user, ready, finish]);
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

@@ -27,5 +27,6 @@ nodePropType.isRequired = createNodePropType(true);
 export const ReactNodePropType = nodePropType;
 
 export function validateComponentProps(component, props) {
+  if (!import.meta.env.DEV) return;
   PropTypes.checkPropTypes(component.propTypes, props, 'prop', component.name);
 }
